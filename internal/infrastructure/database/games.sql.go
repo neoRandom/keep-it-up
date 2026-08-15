@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: games.sql
 
-package db
+package database
 
 import (
 	"context"
