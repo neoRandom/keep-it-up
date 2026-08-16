@@ -11,11 +11,15 @@ type GameCommands struct {
 	q *database.Queries
 }
 
-func NewGameCommands() *GameCommands {
-	return &GameCommands{}
+func NewGameCommands(q *database.Queries) *GameCommands {
+	return &GameCommands{q: q}
 }
 
 func (uc *GameCommands) AddGame(ctx context.Context, name string) (database.Game, error) {
+	if uc.q == nil {
+		return database.Game{}, fmt.Errorf("database queries are not initialized")
+	}
+
 	if len(name) < 3 {
 		return database.Game{}, fmt.Errorf("Game name cannot have less than 3 characters: '%s'", name)
 	}
@@ -28,10 +32,14 @@ func (uc *GameCommands) AddGame(ctx context.Context, name string) (database.Game
 }
 
 func (uc *GameCommands) UpdateGame(ctx context.Context, id int64, name string) error {
+	if uc.q == nil {
+		return fmt.Errorf("database queries are not initialized")
+	}
+
 	if id < 1 {
 		return fmt.Errorf("Invalid game ID: %d", id)
 	}
-	
+
 	if len(name) < 3 {
 		return fmt.Errorf("New game name cannot have less than 3 characters: '%s'", name)
 	}
@@ -41,11 +49,19 @@ func (uc *GameCommands) UpdateGame(ctx context.Context, id int64, name string) e
 	}
 
 	return uc.q.UpdateGame(ctx, database.UpdateGameParams{
-		ID: id,
+		ID:   id,
 		Name: name,
 	})
 }
 
 func (uc *GameCommands) DeleteGame(ctx context.Context, id int64) error {
-	return nil
+	if uc.q == nil {
+		return fmt.Errorf("database queries are not initialized")
+	}
+
+	if id < 1 {
+		return fmt.Errorf("Invalid game ID: %d", id)
+	}
+
+	return uc.q.DeleteGame(ctx, id)
 }
