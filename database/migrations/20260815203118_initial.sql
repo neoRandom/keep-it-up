@@ -12,6 +12,9 @@ CREATE TABLE players (
     hashed_password TEXT NOT NULL
 );
 
+CREATE INDEX idx_players_username
+ON players (username);
+
 CREATE TABLE access (
     game_id INTEGER NOT NULL,
     player_id INTEGER NOT NULL,
@@ -39,6 +42,7 @@ ON interactions (game_id, occurred_at DESC);
 
 -- +goose Down
 
+DROP INDEX idx_players_username;
 DROP INDEX idx_interactions_game_occurred;
 
 DROP TABLE interactions;
