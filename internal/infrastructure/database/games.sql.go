@@ -22,6 +22,16 @@ func (q *Queries) CreateGame(ctx context.Context, name string) (Game, error) {
 	return i, err
 }
 
+const deleteGame = `-- name: DeleteGame :exec
+DELETE FROM games
+WHERE id = ?
+`
+
+func (q *Queries) DeleteGame(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteGame, id)
+	return err
+}
+
 const getGame = `-- name: GetGame :one
 SELECT
     id,
@@ -35,4 +45,20 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
 	var i Game
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
+}
+
+const updateGame = `-- name: UpdateGame :exec
+UPDATE games
+SET name = ?
+WHERE id = ?
+`
+
+type UpdateGameParams struct {
+	Name string
+	ID   int64
+}
+
+func (q *Queries) UpdateGame(ctx context.Context, arg UpdateGameParams) error {
+	_, err := q.db.ExecContext(ctx, updateGame, arg.Name, arg.ID)
+	return err
 }
