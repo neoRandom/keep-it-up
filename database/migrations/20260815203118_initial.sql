@@ -24,7 +24,7 @@ CREATE TABLE access (
 CREATE TABLE interactions (
     id INTEGER PRIMARY KEY,
     game_id INTEGER NOT NULL,
-    player_id INTEGER NOT NULL,
+    player_id INTEGER,
     action TEXT NOT NULL CHECK (
         action IN ('saved', 'paused', 'resumed')
     ),
@@ -34,7 +34,12 @@ CREATE TABLE interactions (
     FOREIGN KEY (player_id) REFERENCES players(id)
 );
 
+CREATE INDEX idx_interactions_game_occurred
+ON interactions (game_id, occurred_at DESC);
+
 -- +goose Down
+
+DROP INDEX idx_interactions_game_occurred;
 
 DROP TABLE interactions;
 DROP TABLE access;

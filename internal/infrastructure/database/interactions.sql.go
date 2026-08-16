@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addInteraction = `-- name: AddInteraction :one
@@ -22,7 +23,7 @@ RETURNING id, game_id, player_id, action, occurred_at
 
 type AddInteractionParams struct {
 	GameID     int64
-	PlayerID   int64
+	PlayerID   sql.NullInt64
 	Action     string
 	OccurredAt string
 }

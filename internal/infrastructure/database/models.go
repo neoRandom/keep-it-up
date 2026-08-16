@@ -4,6 +4,10 @@
 
 package database
 
+import (
+	"database/sql"
+)
+
 type Access struct {
 	GameID   int64
 	PlayerID int64
@@ -17,7 +21,7 @@ type Game struct {
 type Interaction struct {
 	ID         int64
 	GameID     int64
-	PlayerID   int64
+	PlayerID   sql.NullInt64
 	Action     string
 	OccurredAt string
 }
