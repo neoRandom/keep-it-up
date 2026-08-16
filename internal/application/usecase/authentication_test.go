@@ -26,6 +26,18 @@ func newAuthTestQueries(t *testing.T) *database.Queries {
 	return database.New(db)
 }
 
+func TestAuthentication_VerifyPlayerPassword(t *testing.T) {
+	auth := NewAuthentication(nil)
+
+	if err := auth.VerifyPlayerPassword("secret123"); err != nil {
+		t.Fatalf("VerifyPlayerPassword() rejected a valid password: %v", err)
+	}
+
+	if err := auth.VerifyPlayerPassword("short"); err == nil {
+		t.Fatal("VerifyPlayerPassword() accepted a password shorter than 6 characters")
+	}
+}
+
 func TestAuthentication_GeneratePasswordHash(t *testing.T) {
 	auth := NewAuthentication(nil)
 
@@ -50,6 +62,30 @@ func TestAuthentication_GeneratePasswordHashRejectsShortPassword(t *testing.T) {
 
 	if _, err := auth.GeneratePasswordHash("short"); err == nil {
 		t.Fatal("GeneratePasswordHash() accepted a password shorter than 6 characters")
+	}
+}
+
+func TestAuthentication_CheckPlayerPasswordUsesPasswordRuleValidation(t *testing.T) {
+	ctx := context.Background()
+	queries := newAuthTestQueries(t)
+	auth := NewAuthentication(queries)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("GenerateFromPassword() returned error: %v", err)
+	}
+
+	_, err = queries.CreatePlayer(ctx, database.CreatePlayerParams{
+		Name:           "Alice",
+		Username:       "alice",
+		HashedPassword: string(hash),
+	})
+	if err != nil {
+		t.Fatalf("CreatePlayer() returned error: %v", err)
+	}
+
+	if _, err := auth.CheckPlayerPassword(ctx, "alice", "short"); err == nil {
+		t.Fatal("CheckPlayerPassword() accepted a password that fails business-rule validation")
 	}
 }
 

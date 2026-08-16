@@ -17,9 +17,17 @@ func NewAuthentication(q *database.Queries) *Authentication {
 	return &Authentication{q: q}
 }
 
-func (uc *Authentication) GeneratePasswordHash(password string) (string, error) {
+func (uc *Authentication) VerifyPlayerPassword(password string) error {
 	if len(password) < 6 {
-		return "", fmt.Errorf("Password cannot have less than 6 characters")
+		return fmt.Errorf("Password cannot have less than 6 characters")
+	}
+
+	return nil
+}
+
+func (uc *Authentication) GeneratePasswordHash(password string) (string, error) {
+	if err := uc.VerifyPlayerPassword(password); err != nil {
+		return "", err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -39,8 +47,8 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 		return false, fmt.Errorf("Username cannot have less than 3 characters: '%s'", username)
 	}
 
-	if len(password) < 6 {
-		return false, fmt.Errorf("Password cannot have less than 6 characters")
+	if err := uc.VerifyPlayerPassword(password); err != nil {
+		return false, err
 	}
 
 	player, err := uc.q.GetPlayerByUsername(ctx, username)
