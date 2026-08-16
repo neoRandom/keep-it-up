@@ -19,6 +19,8 @@ type PlayerManagement interface {
 }
 
 type Authentication interface {
+	GeneratePasswordHash(password string) (string, error)
+	CheckPlayerPassword(ctx context.Context, username string, password string) (bool, error)
 	LoginPlayer()
 }
 

@@ -40,11 +40,16 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		return database.Player{}, fmt.Errorf("Password cannot have less than 6 characters")
 	}
 
-	// TODO: generate a password hash before passing a password to a query that expects a hashed password.
+	auth := NewAuthentication(uc.q)
+	hashedPassword, err := auth.GeneratePasswordHash(password)
+	if err != nil {
+		return database.Player{}, err
+	}
+
 	return uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
 		Name:           name,
 		Username:       username,
-		HashedPassword: password,
+		HashedPassword: hashedPassword,
 	})
 }
 
@@ -84,10 +89,15 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 		return fmt.Errorf("Password cannot have less than 6 characters")
 	}
 
-	// TODO: generate a password hash before passing a password to a query that expects a hashed password.
+	auth := NewAuthentication(uc.q)
+	hashedPassword, err := auth.GeneratePasswordHash(password)
+	if err != nil {
+		return err
+	}
+
 	return uc.q.UpdatePlayerPassword(ctx, database.UpdatePlayerPasswordParams{
 		ID:             id,
-		HashedPassword: password,
+		HashedPassword: hashedPassword,
 	})
 }
 
@@ -102,5 +112,3 @@ func (uc *PlayerManagement) DeletePlayer(ctx context.Context, id int64) error {
 
 	return uc.q.DeletePlayer(ctx, id)
 }
-
-

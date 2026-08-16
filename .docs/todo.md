@@ -1,7 +1,7 @@
 - [x] TODO: add a username index on the players table, because username lookups are used for authentication and player lookup queries such as GetPlayerByUsername and password validation checks.
 
-- [ ] TODO: add GeneratePasswordHash to the Authentication interface. It should be used to generate a hashed password before sending password values to any query that expects a hashed password, especially in PlayerManagement.AddPlayer and PlayerManagement.UpdatePlayerPassword.
-- [ ] TODO: add CheckPlayerPassword to the Authentication interface. It should receive a password and a username, validate the credentials, and be used by login flows and the normal PlayerManagement password-update flow before allowing a password change.
+- [x] TODO: add GeneratePasswordHash to the Authentication interface. It should be used to generate a hashed password before sending password values to any query that expects a hashed password, especially in PlayerManagement.AddPlayer and PlayerManagement.UpdatePlayerPassword.
+- [x] TODO: add CheckPlayerPassword to the Authentication interface. It should receive a password and a username, validate the credentials, and be used by login flows and the normal PlayerManagement password-update flow before allowing a password change.
 
 - [ ] TODO: redesign the password change flow in the PlayerManagement interface and struct:
     - UpdatePlayerPassword: require the current/previous password before accepting a new password.

@@ -51,8 +51,8 @@ func TestPlayerManagement_AddPlayerAndUpdatePlayer(t *testing.T) {
 	if updated.Name != "Alicia" {
 		t.Fatalf("GetPlayer() name = %q, want %q", updated.Name, "Alicia")
 	}
-	if updated.HashedPassword != "newpass123" {
-		t.Fatalf("GetPlayer() hashed password = %q, want %q", updated.HashedPassword, "newpass123")
+	if updated.HashedPassword == "newpass123" {
+		t.Fatal("GetPlayer() stored a plain-text password instead of a hash")
 	}
 }
 
