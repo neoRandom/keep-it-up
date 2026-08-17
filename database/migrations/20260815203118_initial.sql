@@ -21,7 +21,7 @@ CREATE TABLE access (
 
     PRIMARY KEY (game_id, player_id),
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
-    FOREIGN KEY (player_id) REFERENCES players(id)
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
 
 CREATE TABLE interactions (
