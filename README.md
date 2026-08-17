@@ -1,6 +1,6 @@
 # Keep It Up
 
-A simple system that keeps an activity alive through periodic interaction and triggers an alert when it is left unattended for too long.
+A system that coordinates periodic interactions across multiple devices and tracks when the next interaction is required.
 
 ## Tech Stack
 
