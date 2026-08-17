@@ -9,12 +9,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func TestAuthentication_VerifyPlayerPassword(t *testing.T) {
+func TestAuthentication_IsPasswordValid(t *testing.T) {
 	auth := NewAuthentication(nil)
 
 	for _, password := range []string{"secret123", "abc123"} {
-		if err := auth.VerifyPlayerPassword(password); err != nil {
-			t.Fatalf("VerifyPlayerPassword() rejected a valid password %q: %v", password, err)
+		if err := auth.IsPasswordValid(password); err != nil {
+			t.Fatalf("IsPasswordValid() rejected a valid password %q: %v", password, err)
 		}
 	}
 
@@ -23,31 +23,31 @@ func TestAuthentication_VerifyPlayerPassword(t *testing.T) {
 		"alice", " alice ", " secret123 ", "secret123 ", " secret123",
 		"\tsecret 123\n",
 	} {
-		if err := auth.VerifyPlayerPassword(password); err == nil {
-			t.Fatalf("VerifyPlayerPassword() accepted an invalid password %q", password)
+		if err := auth.IsPasswordValid(password); err == nil {
+			t.Fatalf("IsPasswordValid() accepted an invalid password %q", password)
 		}
 	}
 }
 
-func TestAuthentication_VerifyPlayerPasswordBoundary(t *testing.T) {
+func TestAuthentication_IsPasswordValidBoundary(t *testing.T) {
 	// Test boundary condition: exactly 6 characters (minimum valid length)
 	auth := NewAuthentication(nil)
 
-	if err := auth.VerifyPlayerPassword("abc123"); err != nil {
-		t.Fatalf("VerifyPlayerPassword() rejected valid 6-character password: %v", err)
+	if err := auth.IsPasswordValid("abc123"); err != nil {
+		t.Fatalf("IsPasswordValid() rejected valid 6-character password: %v", err)
 	}
 
 	// Test one below boundary: 5 characters (should fail)
-	if err := auth.VerifyPlayerPassword("abc12"); err == nil {
-		t.Fatal("VerifyPlayerPassword() accepted 5-character password (below minimum)")
+	if err := auth.IsPasswordValid("abc12"); err == nil {
+		t.Fatal("IsPasswordValid() accepted 5-character password (below minimum)")
 	}
 
 	// Test with whitespace at boundary
-	if err := auth.VerifyPlayerPassword(" abc123"); err == nil {
-		t.Fatalf("VerifyPlayerPassword() accepted invalid 6-char password with leading space: %v", err)
+	if err := auth.IsPasswordValid(" abc123"); err == nil {
+		t.Fatalf("IsPasswordValid() accepted invalid 6-char password with leading space: %v", err)
 	}
-	if err := auth.VerifyPlayerPassword("abc123 "); err == nil {
-		t.Fatalf("VerifyPlayerPassword() accepted invalid 6-char password with trailing space: %v", err)
+	if err := auth.IsPasswordValid("abc123 "); err == nil {
+		t.Fatalf("IsPasswordValid() accepted invalid 6-char password with trailing space: %v", err)
 	}
 }
 
@@ -237,7 +237,7 @@ func TestAuthentication_CheckPlayerPasswordWithCancelledContext(t *testing.T) {
 	}
 }
 
-func TestAuthentication_VerifyPlayerPasswordBoundaryPrecision(t *testing.T) {
+func TestAuthentication_IsPasswordValidBoundaryPrecision(t *testing.T) {
 	auth := NewAuthentication(nil)
 
 	// Test exactly at boundary: 6 characters (minimum valid)
@@ -254,12 +254,12 @@ func TestAuthentication_VerifyPlayerPasswordBoundaryPrecision(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := auth.VerifyPlayerPassword(tc.password)
+		err := auth.IsPasswordValid(tc.password)
 		if tc.shouldValidate && err != nil {
-			t.Fatalf("VerifyPlayerPassword() should validate %q (length=%d): %v", tc.password, len(tc.password), err)
+			t.Fatalf("IsPasswordValid() should validate %q (length=%d): %v", tc.password, len(tc.password), err)
 		}
 		if !tc.shouldValidate && err == nil {
-			t.Fatalf("VerifyPlayerPassword() should reject %q (length=%d)", tc.password, len(tc.password))
+			t.Fatalf("IsPasswordValid() should reject %q (length=%d)", tc.password, len(tc.password))
 		}
 	}
 }
@@ -313,18 +313,18 @@ func TestAuthentication_CheckPlayerPasswordWithTrimmablePassword(t *testing.T) {
 		t.Fatal("CheckPlayerPassword() should accept exact password match")
 	}
 
-	// Test that passwords with leading/trailing spaces are handled by trimming in VerifyPlayerPassword
+	// Test that passwords with leading/trailing spaces are handled by trimming in IsPasswordValid
 	// Note: This test documents how passwords with whitespace are handled
 	for _, password := range []string{" secret123", "secret123 ", " secret123 ", "\tsecret123", "secret123\n"} {
 		ok, err := auth.CheckPlayerPassword(ctx, "alice", password)
-		// These should work IF VerifyPlayerPassword trims them before checking
+		// These should work IF IsPasswordValid trims them before checking
 		// The behavior depends on the implementation
 		_ = ok
 		_ = err
 	}
 }
 
-func TestAuthentication_VerifyPlayerPasswordWithUnicodeCharacters(t *testing.T) {
+func TestAuthentication_IsPasswordValidWithUnicodeCharacters(t *testing.T) {
 	auth := NewAuthentication(nil)
 
 	// Test that unicode characters are allowed (if validation allows non-ASCII)
@@ -340,7 +340,7 @@ func TestAuthentication_VerifyPlayerPasswordWithUnicodeCharacters(t *testing.T) 
 
 	for _, tc := range testCases {
 		// Just verify the function doesn't panic or error unexpectedly
-		_ = auth.VerifyPlayerPassword(tc.password)
+		_ = auth.IsPasswordValid(tc.password)
 	}
 }
 

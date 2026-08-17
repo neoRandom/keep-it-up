@@ -22,17 +22,17 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 	}
 
 	name = strings.TrimSpace(name)
-	
+
 	if len(name) < 3 {
 		return database.Game{}, fmt.Errorf(
-			"Game name cannot have less than 3 characters: '%s'", 
+			"Game name cannot have less than 3 characters: '%s'",
 			name,
 		)
 	}
 
 	if !util.IsAlphanumeric(name) {
 		return database.Game{}, fmt.Errorf(
-			"Game name isn't purely alphanumeric: '%s'", 
+			"Game name isn't purely alphanumeric: '%s'",
 			name,
 		)
 	}
@@ -50,17 +50,17 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 	}
 
 	name = strings.TrimSpace(name)
-	
+
 	if len(name) < 3 {
 		return fmt.Errorf(
-			"New game name cannot have less than 3 characters: '%s'", 
+			"New game name cannot have less than 3 characters: '%s'",
 			name,
 		)
 	}
-	
+
 	if !util.IsAlphanumeric(name) {
 		return fmt.Errorf(
-			"New game name isn't purely alphanumeric: '%s'", 
+			"New game name isn't purely alphanumeric: '%s'",
 			name,
 		)
 	}

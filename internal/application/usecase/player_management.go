@@ -30,40 +30,40 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	}
 
 	name = strings.TrimSpace(name)
-	
+
 	if len(name) < 2 {
 		return database.Player{}, fmt.Errorf(
-			"Player name cannot have less than 2 characters: '%s'", 
+			"Player name cannot have less than 2 characters: '%s'",
 			name,
 		)
 	}
 
 	if !util.IsAlphanumeric(name) {
 		return database.Player{}, fmt.Errorf(
-			"Player name isn't purely alphanumeric: '%s'", 
+			"Player name isn't purely alphanumeric: '%s'",
 			name,
 		)
 	}
 
 	username = strings.TrimSpace(username)
-	
+
 	if len(username) < 3 {
 		return database.Player{}, fmt.Errorf(
-			"Username cannot have less than 3 characters: '%s'", 
+			"Username cannot have less than 3 characters: '%s'",
 			username,
 		)
 	}
-	
+
 	if !util.IsAlphanumeric(username) {
 		return database.Player{}, fmt.Errorf(
-			"Username isn't purely alphanumeric: '%s'", 
+			"Username isn't purely alphanumeric: '%s'",
 			username,
 		)
 	}
-	
+
 	password = strings.TrimSpace(password)
 
-	if err := uc.auth.VerifyPlayerPassword(password); err != nil {
+	if err := uc.auth.IsPasswordValid(password); err != nil {
 		return database.Player{}, err
 	}
 
@@ -87,7 +87,7 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 	if id < 1 {
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
-	
+
 	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
@@ -115,10 +115,10 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 	if id < 1 {
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
-	
+
 	password = strings.TrimSpace(password)
 
-	if err := uc.auth.VerifyPlayerPassword(password); err != nil {
+	if err := uc.auth.IsPasswordValid(password); err != nil {
 		return err
 	}
 
@@ -151,12 +151,12 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 	}
 
 	currentPassword = strings.TrimSpace(currentPassword)
-	if err := uc.auth.VerifyPlayerPassword(currentPassword); err != nil {
+	if err := uc.auth.IsPasswordValid(currentPassword); err != nil {
 		return err
 	}
-	
+
 	newPassword = strings.TrimSpace(newPassword)
-	if err := uc.auth.VerifyPlayerPassword(newPassword); err != nil {
+	if err := uc.auth.IsPasswordValid(newPassword); err != nil {
 		return err
 	}
 
@@ -183,7 +183,7 @@ func (uc *PlayerManagement) UpdatePlayerPasswordForce(ctx context.Context, id in
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
 
-	if err := uc.auth.VerifyPlayerPassword(password); err != nil {
+	if err := uc.auth.IsPasswordValid(password); err != nil {
 		return err
 	}
 

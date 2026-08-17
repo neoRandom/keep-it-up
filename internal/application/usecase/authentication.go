@@ -18,7 +18,7 @@ func NewAuthentication(q *database.Queries) *Authentication {
 	return &Authentication{q: q}
 }
 
-func (uc *Authentication) VerifyPlayerPassword(password string) error {
+func (uc *Authentication) IsPasswordValid(password string) error {
 	if strings.ContainsRune(password, ' ') {
 		return fmt.Errorf("Password cannot have whitespaces")
 	}
@@ -31,7 +31,7 @@ func (uc *Authentication) VerifyPlayerPassword(password string) error {
 }
 
 func (uc *Authentication) GeneratePasswordHash(password string) (string, error) {
-	if err := uc.VerifyPlayerPassword(password); err != nil {
+	if err := uc.IsPasswordValid(password); err != nil {
 		return "", err
 	}
 
@@ -52,7 +52,7 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 		return false, fmt.Errorf("Username cannot have less than 3 characters: '%s'", username)
 	}
 
-	if err := uc.VerifyPlayerPassword(password); err != nil {
+	if err := uc.IsPasswordValid(password); err != nil {
 		return false, err
 	}
 
@@ -71,4 +71,6 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 	return true, nil
 }
 
-func (uc *Authentication) LoginPlayer() {}
+func (uc *Authentication) LoginPlayer(ctx context.Context, username string, password string) {
+
+}

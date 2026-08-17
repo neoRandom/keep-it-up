@@ -2,13 +2,20 @@ package driver
 
 import (
 	"context"
+	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
+	"time"
 )
 
 type GameManagement interface {
 	AddGame(ctx context.Context, name string) (database.Game, error)
 	UpdateGame(ctx context.Context, id int64, name string) error
 	DeleteGame(ctx context.Context, id int64) error
+}
+
+type AccessManagement interface {
+	GivePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
+	RemovePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
 }
 
 type PlayerManagement interface {
@@ -20,20 +27,20 @@ type PlayerManagement interface {
 }
 
 type Authentication interface {
+	IsPasswordValid(password string) error
 	GeneratePasswordHash(password string) (string, error)
-	VerifyPlayerPassword(password string) error
 	CheckPlayerPassword(ctx context.Context, username string, password string) (bool, error)
-	LoginPlayer()
+	LoginPlayer(ctx context.Context, username string, password string)
 }
 
 type DataFetching interface {
-	ListPlayerGames()
-	GetSharedData()
-	ListInteractions()
+	ListPlayerGames(ctx context.Context, gameId int64, playerId int64) ([]database.Game, error)
+	GetSharedData(ctx context.Context, gameId int64) (model.SharedData, error)
+	ListInteractions(ctx context.Context, gameId int64, count int) ([]database.Interaction, error)
 }
 
 type GameCommands interface {
-	SaveGame()
-	ResumeGame()
-	PauseGame()
+	SaveGame(ctx context.Context, gameId int64, playerId int64, amount time.Time) error
+	ResumeGame(ctx context.Context, gameId int64, playerId int64) error
+	PauseGame(ctx context.Context, gameId int64, playerId int64) error
 }
