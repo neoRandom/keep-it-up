@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
 	"strings"
 
@@ -71,6 +72,9 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 	return true, nil
 }
 
-func (uc *Authentication) LoginPlayer(ctx context.Context, username string, password string) {
-
+func (uc *Authentication) LoginPlayer(
+	ctx context.Context, username string, password string,
+) (model.AuthResult, error) {
+	// TODO: Implement
+	return model.AuthResult{}, nil
 }

@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"keep-it-up/internal/infrastructure/database"
+	"time"
+)
 
 type SharedDataStatus string
 
@@ -16,4 +19,9 @@ type SharedData struct {
 	DeadlineAt   *time.Time
 	LastSavedAt  *time.Time
 	LastPausedAt *time.Time
+}
+
+type AuthResult struct {
+    Token  string
+    Player database.Player
 }

@@ -13,7 +13,7 @@ func NewDataFetching() *DataFetching {
 }
 
 func (uc *DataFetching) ListPlayerGames(
-	ctx context.Context, gameId int64, playerId int64,
+	ctx context.Context, playerId int64,
 ) ([]database.Game, error) {
 	return nil, nil
 }
