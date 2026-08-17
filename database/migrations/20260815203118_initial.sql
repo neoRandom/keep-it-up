@@ -12,13 +12,16 @@ CREATE TABLE players (
     hashed_password TEXT NOT NULL
 );
 
+CREATE INDEX idx_players_username
+ON players (username);
+
 CREATE TABLE access (
     game_id INTEGER NOT NULL,
     player_id INTEGER NOT NULL,
 
     PRIMARY KEY (game_id, player_id),
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
-    FOREIGN KEY (player_id) REFERENCES players(id)
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
 
 CREATE TABLE interactions (
@@ -39,6 +42,7 @@ ON interactions (game_id, occurred_at DESC);
 
 -- +goose Down
 
+DROP INDEX idx_players_username;
 DROP INDEX idx_interactions_game_occurred;
 
 DROP TABLE interactions;
