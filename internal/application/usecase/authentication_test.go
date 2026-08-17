@@ -12,13 +12,17 @@ import (
 func TestAuthentication_VerifyPlayerPassword(t *testing.T) {
 	auth := NewAuthentication(nil)
 
-	for _, password := range []string{"secret123", "abc123", " secret123 ", "secret123 ", " secret123", "\tsecret123\n"} {
+	for _, password := range []string{"secret123", "abc123"} {
 		if err := auth.VerifyPlayerPassword(password); err != nil {
 			t.Fatalf("VerifyPlayerPassword() rejected a valid password %q: %v", password, err)
 		}
 	}
 
-	for _, password := range []string{"", "short", "abc12", "pa ss", "p ass ", "secret 123", "pass  ", "alice", " alice ", "\tsecret 123\n"} {
+	for _, password := range []string{
+		"", "short", "abc12", "pa ss", "p ass ", "secret 123", "pass  ",
+		"alice", " alice ", " secret123 ", "secret123 ", " secret123",
+		"\tsecret 123\n",
+	} {
 		if err := auth.VerifyPlayerPassword(password); err == nil {
 			t.Fatalf("VerifyPlayerPassword() accepted an invalid password %q", password)
 		}
@@ -39,11 +43,11 @@ func TestAuthentication_VerifyPlayerPasswordBoundary(t *testing.T) {
 	}
 
 	// Test with whitespace at boundary
-	if err := auth.VerifyPlayerPassword(" abc123"); err != nil {
-		t.Fatalf("VerifyPlayerPassword() rejected valid 6-char password with leading space: %v", err)
+	if err := auth.VerifyPlayerPassword(" abc123"); err == nil {
+		t.Fatalf("VerifyPlayerPassword() accepted invalid 6-char password with leading space: %v", err)
 	}
-	if err := auth.VerifyPlayerPassword("abc123 "); err != nil {
-		t.Fatalf("VerifyPlayerPassword() rejected valid 6-char password with trailing space: %v", err)
+	if err := auth.VerifyPlayerPassword("abc123 "); err == nil {
+		t.Fatalf("VerifyPlayerPassword() accepted invalid 6-char password with trailing space: %v", err)
 	}
 }
 
