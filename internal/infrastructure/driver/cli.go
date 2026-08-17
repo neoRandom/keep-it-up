@@ -22,10 +22,10 @@ var (
 	ErrWrongArgCount     = errors.New("wrong number of arguments")
 )
 
-const usage = `keep-it-up — system management CLI
+const usage = `keepitup — system management CLI
 
 Usage:
-  keep-it-up <noun> <verb> [args...]
+  keepitup <noun> <verb> [args...]
 
 Nouns:
   game     add <name>
@@ -38,18 +38,15 @@ Nouns:
            passwd <id> <currentPassword> <newPassword>
            passwd-force <id> <password>
            delete <id>
-  auth     validate-password <password>
-           hash-password <password>
-           check-password <username> <password>
+  auth     validate-passwd <password>
+           hash-passwd <password>
+           check-passwd <username> <password>
   data     games <gameId> <playerId>
            shared <gameId>
            interactions <gameId> <count>
   session  save <gameId> <playerId> <RFC3339 timestamp>
            resume <gameId> <playerId>
            pause <gameId> <playerId>
-
-Note: player login is not exposed here; it belongs to an interactive/session
-driver, not an administrative one.
 `
 
 // Deps groups the driver ports and I/O streams the CLI needs. It is a
@@ -320,34 +317,34 @@ func (c *CLI) runAuth(ctx context.Context, args []string) error {
 	}
 	verb, rest := args[0], args[1:]
 	switch verb {
-	case "validate-password":
+	case "validate-passwd":
 		if len(rest) != 1 {
-			return wrongArgs("auth validate-password", "auth validate-password <password>")
+			return wrongArgs("auth validate-passwd", "auth validate-passwd <password>")
 		}
 		if err := c.d.Auth.IsPasswordValid(rest[0]); err != nil {
-			return fmt.Errorf("auth validate-password: %w", err)
+			return fmt.Errorf("auth validate-passwd: %w", err)
 		}
 		fmt.Fprintln(c.d.Stdout, "valid")
 		return nil
 
-	case "hash-password":
+	case "hash-passwd":
 		if len(rest) != 1 {
-			return wrongArgs("auth hash-password", "auth hash-password <password>")
+			return wrongArgs("auth hash-passwd", "auth hash-passwd <password>")
 		}
 		hash, err := c.d.Auth.GeneratePasswordHash(rest[0])
 		if err != nil {
-			return fmt.Errorf("auth hash-password: %w", err)
+			return fmt.Errorf("auth hash-passwd: %w", err)
 		}
 		fmt.Fprintln(c.d.Stdout, hash)
 		return nil
 
-	case "check-password":
+	case "check-passwd":
 		if len(rest) != 2 {
-			return wrongArgs("auth check-password", "auth check-password <username> <password>")
+			return wrongArgs("auth check-passwd", "auth check-passwd <username> <password>")
 		}
 		ok, err := c.d.Auth.CheckPlayerPassword(ctx, rest[0], rest[1])
 		if err != nil {
-			return fmt.Errorf("auth check-password: %w", err)
+			return fmt.Errorf("auth check-passwd: %w", err)
 		}
 		fmt.Fprintln(c.d.Stdout, ok)
 		return nil
