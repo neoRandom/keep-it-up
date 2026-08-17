@@ -15,7 +15,6 @@ import (
 // --- Mocks ---
 
 type mockGames struct {
-	// Updated return type from 'any' to 'database.Game'
 	AddGameFunc    func(ctx context.Context, name string) (database.Game, error)
 	UpdateGameFunc func(ctx context.Context, id int64, name string) error
 	DeleteGameFunc func(ctx context.Context, id int64) error
@@ -46,9 +45,6 @@ func (m *mockCommands) ResumeGame(ctx context.Context, gameID, playerID int64) e
 func (m *mockCommands) PauseGame(ctx context.Context, gameID, playerID int64) error {
 	return m.PauseGameFunc(ctx, gameID, playerID)
 }
-
-// NOTE: You would implement mockAccess, mockPlayers, mockAuth, and mockData 
-// following the exact same pattern above to cover all dependencies in driver.Deps.
 
 // --- Tests ---
 
@@ -99,7 +95,6 @@ func TestCLI_Run(t *testing.T) {
 						if name != "MyGame" {
 							t.Errorf("expected MyGame, got %s", name)
 						}
-						// Return a populated database.Game instead of an anonymous struct
 						return database.Game{ID: 42, Name: "MyGame"}, nil 
 					},
 				}
