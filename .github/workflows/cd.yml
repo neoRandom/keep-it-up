@@ -39,3 +39,4 @@ jobs:
         with:
           name: kpip-release
           path: dist/
+          include-hidden-files: true
