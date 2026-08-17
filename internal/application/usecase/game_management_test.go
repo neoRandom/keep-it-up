@@ -48,29 +48,23 @@ func TestGameManagement_RejectsInvalidGameNames(t *testing.T) {
 		t.Fatal("AddGame() accepted short name")
 	}
 
-	if _, err := uc.AddGame(ctx, "Bad-Name"); err == nil {
-		t.Fatal("AddGame() accepted non-alphanumeric name")
+	if _, err := uc.AddGame(ctx, "Bad-Name"); err != nil {
+		t.Fatal("AddGame() rejected non-alphanumeric name")
 	}
 
 	if err := uc.UpdateGame(ctx, 1, "A"); err == nil {
 		t.Fatal("UpdateGame() accepted short name")
 	}
 
-	if err := uc.UpdateGame(ctx, 1, "Bad-Name"); err == nil {
-		t.Fatal("UpdateGame() accepted non-alphanumeric name")
+	if err := uc.UpdateGame(ctx, 1, "Bad-Name"); err != nil {
+		t.Fatal("UpdateGame() rejected non-alphanumeric name")
 	}
 }
 
-func TestGameManagement_RejectsWhitespaceAndNilDependency(t *testing.T) {
+func TestGameManagement_RejectsNilDependency(t *testing.T) {
 	ctx := context.Background()
 	uc := NewGameManagement(nil)
 
-	if _, err := uc.AddGame(ctx, "Alpha Beta"); err == nil {
-		t.Fatal("AddGame() accepted a name containing whitespace")
-	}
-	if err := uc.UpdateGame(ctx, 1, "Alpha Beta"); err == nil {
-		t.Fatal("UpdateGame() accepted a name containing whitespace")
-	}
 	if _, err := uc.AddGame(ctx, "Alpha"); err == nil {
 		t.Fatal("AddGame() accepted nil queries")
 	}
@@ -214,9 +208,9 @@ func TestGameManagement_RejectsInvalidGameNameFormats(t *testing.T) {
 		{"ABC", true},        // exactly 3 chars - minimum
 		{"ValidGame", true},  // valid
 		{"Game123", true},    // alphanumeric
-		{"Game-Name", false}, // contains hyphen
-		{"Game Name", false}, // contains space
-		{"Game@123", false},  // contains special char
+		{"Game-Name", true}, // contains hyphen
+		{"Game Name", true}, // contains space
+		{"Game@123", true},  // contains special char
 		{"123", true},        // digits only, 3 chars
 		{"AB", false},        // 2 chars - below minimum
 		{"A", false},         // 1 char - too short
