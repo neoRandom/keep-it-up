@@ -119,7 +119,7 @@ The test verifies two cases:
 - Exactly 6 characters `"abc123"` — should pass (boundary, exactly meets minimum)
 - Exactly 5 characters `"abcd1"` — should fail (boundary, one below minimum)
 - Unicode characters `"пароль"` (6 chars in Cyrillic) — should pass (validates multi-byte handling)
-- Whitespace `"pass  "` (6 chars with spaces) — should pass if implementation allows (validates non-letter/digit handling)
+- Whitespace `"pass  "` (6 chars with spaces) — should not pass (validates non-letter/digit handling)
 
 **Why It Matters**:
 Boundary conditions are where off-by-one errors hide. The invariant is: `len(password) >= 6`. Current test only validates the behavior at the extremes (well below and well above), not at the boundary.
@@ -127,11 +127,13 @@ Boundary conditions are where off-by-one errors hide. The invariant is: `len(pas
 **Fix Direction**: Add test cases at and around the boundary:
 ```go
 // Should pass
-auth.VerifyPlayerPassword("abc123")  // exactly 6 chars
+auth.VerifyPlayerPassword("abc123")    // exactly 6 chars
+auth.VerifyPlayerPassword("abc123  ")  // 6 chars ignoring whitespaces
 
 // Should fail
 auth.VerifyPlayerPassword("")        // empty
 auth.VerifyPlayerPassword("abc12")   // exactly 5 chars
+auth.VerifyPlayerPassword("abc12 ")  // 6 chars with whitespace
 ```
 
 ---
