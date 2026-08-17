@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/infrastructure/database"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -18,6 +19,10 @@ func NewAuthentication(q *database.Queries) *Authentication {
 }
 
 func (uc *Authentication) VerifyPlayerPassword(password string) error {
+	if strings.ContainsRune(password, ' ') {
+		return fmt.Errorf("Password cannot have whitespaces")
+	}
+
 	if len(password) < 6 {
 		return fmt.Errorf("Password cannot have less than 6 characters")
 	}

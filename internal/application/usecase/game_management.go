@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/util"
+	"strings"
 )
 
 type GameManagement struct {
@@ -20,12 +21,20 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 		return database.Game{}, fmt.Errorf("database queries are not initialized")
 	}
 
+	name = strings.TrimSpace(name)
+	
 	if len(name) < 3 {
-		return database.Game{}, fmt.Errorf("Game name cannot have less than 3 characters: '%s'", name)
+		return database.Game{}, fmt.Errorf(
+			"Game name cannot have less than 3 characters: '%s'", 
+			name,
+		)
 	}
 
 	if !util.IsAlphanumeric(name) {
-		return database.Game{}, fmt.Errorf("Game name isn't purely alphanumeric: '%s'", name)
+		return database.Game{}, fmt.Errorf(
+			"Game name isn't purely alphanumeric: '%s'", 
+			name,
+		)
 	}
 
 	return uc.q.CreateGame(ctx, name)
@@ -40,12 +49,20 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 		return fmt.Errorf("Invalid game ID: %d", id)
 	}
 
+	name = strings.TrimSpace(name)
+	
 	if len(name) < 3 {
-		return fmt.Errorf("New game name cannot have less than 3 characters: '%s'", name)
+		return fmt.Errorf(
+			"New game name cannot have less than 3 characters: '%s'", 
+			name,
+		)
 	}
-
+	
 	if !util.IsAlphanumeric(name) {
-		return fmt.Errorf("New game name isn't purely alphanumeric: '%s'", name)
+		return fmt.Errorf(
+			"New game name isn't purely alphanumeric: '%s'", 
+			name,
+		)
 	}
 
 	return uc.q.UpdateGame(ctx, database.UpdateGameParams{

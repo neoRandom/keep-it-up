@@ -6,6 +6,7 @@ import (
 	"keep-it-up/internal/core/interface/driver"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/util"
+	"strings"
 )
 
 type PlayerManagement struct {
@@ -28,21 +29,39 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		return database.Player{}, fmt.Errorf("authentication is not initialized")
 	}
 
+	name = strings.TrimSpace(name)
+	
 	if len(name) < 2 {
-		return database.Player{}, fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
+		return database.Player{}, fmt.Errorf(
+			"Player name cannot have less than 2 characters: '%s'", 
+			name,
+		)
 	}
 
 	if !util.IsAlphanumeric(name) {
-		return database.Player{}, fmt.Errorf("Player name isn't purely alphanumeric: '%s'", name)
+		return database.Player{}, fmt.Errorf(
+			"Player name isn't purely alphanumeric: '%s'", 
+			name,
+		)
 	}
 
+	username = strings.TrimSpace(username)
+	
 	if len(username) < 3 {
-		return database.Player{}, fmt.Errorf("Username cannot have less than 3 characters: '%s'", username)
+		return database.Player{}, fmt.Errorf(
+			"Username cannot have less than 3 characters: '%s'", 
+			username,
+		)
 	}
-
+	
 	if !util.IsAlphanumeric(username) {
-		return database.Player{}, fmt.Errorf("Username isn't purely alphanumeric: '%s'", username)
+		return database.Player{}, fmt.Errorf(
+			"Username isn't purely alphanumeric: '%s'", 
+			username,
+		)
 	}
+	
+	password = strings.TrimSpace(password)
 
 	if err := uc.auth.VerifyPlayerPassword(password); err != nil {
 		return database.Player{}, err
@@ -68,6 +87,8 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 	if id < 1 {
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
+	
+	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
 		return fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
@@ -94,6 +115,8 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 	if id < 1 {
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
+	
+	password = strings.TrimSpace(password)
 
 	if err := uc.auth.VerifyPlayerPassword(password); err != nil {
 		return err
@@ -127,9 +150,12 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 		return err
 	}
 
+	currentPassword = strings.TrimSpace(currentPassword)
 	if err := uc.auth.VerifyPlayerPassword(currentPassword); err != nil {
 		return err
 	}
+	
+	newPassword = strings.TrimSpace(newPassword)
 	if err := uc.auth.VerifyPlayerPassword(newPassword); err != nil {
 		return err
 	}
