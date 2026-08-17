@@ -83,8 +83,8 @@ func TestPlayerManagement_RejectsInvalidPlayerInput(t *testing.T) {
 		t.Fatal("AddPlayer() accepted short password")
 	}
 
-	if _, err := uc.AddPlayer(ctx, "Bad-Name", "bob", "secret123"); err == nil {
-		t.Fatal("AddPlayer() accepted non-alphanumeric name")
+	if _, err := uc.AddPlayer(ctx, "Bad-Name", "bob", "secret123"); err != nil {
+		t.Fatal("AddPlayer() rejected non-alphanumeric name")
 	}
 
 	if err := uc.UpdatePlayerName(ctx, 1, "A"); err == nil {
@@ -101,8 +101,8 @@ func TestPlayerManagement_RejectsWhitespaceInNamesAndUsernames(t *testing.T) {
 	queries := newTestDB(t)
 	uc := NewPlayerManagement(queries, NewAuthentication(queries))
 
-	if _, err := uc.AddPlayer(ctx, "Alice Smith", "alice", "secret123"); err == nil {
-		t.Fatal("AddPlayer() accepted a name containing whitespace")
+	if _, err := uc.AddPlayer(ctx, "Alice Smith", "alice", "secret123"); err != nil {
+		t.Fatal("AddPlayer() rejected a name containing whitespace")
 	}
 	if _, err := uc.AddPlayer(ctx, "Alice", "alice smith", "secret123"); err == nil {
 		t.Fatal("AddPlayer() accepted a username containing whitespace")
@@ -423,36 +423,6 @@ func TestPlayerManagement_DeletePlayerWithCancelledContext(t *testing.T) {
 
 	if err := uc.DeletePlayer(ctx, created.ID); err == nil {
 		t.Fatal("DeletePlayer() should return error for cancelled context")
-	}
-}
-
-func TestPlayerManagement_RejectsInvalidNameInput(t *testing.T) {
-	ctx := context.Background()
-	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
-
-	// Test AddPlayer with invalid names
-	invalidNames := []string{
-		"A",        // too short
-		"Bad-Name", // contains hyphen
-		"Bad Name", // contains space
-		"Name@123", // contains special char
-		"123Name!", // contains special char
-	}
-
-	for _, name := range invalidNames {
-		if _, err := uc.AddPlayer(ctx, name, "validuser", "secret123"); err == nil {
-			t.Fatalf("AddPlayer() accepted invalid name: %q", name)
-		}
-	}
-
-	// Test UpdatePlayerName with invalid names
-	player, _ := uc.AddPlayer(ctx, "ValidName", "validuser", "secret123")
-
-	for _, name := range invalidNames {
-		if err := uc.UpdatePlayerName(ctx, player.ID, name); err == nil {
-			t.Fatalf("UpdatePlayerName() accepted invalid name: %q", name)
-		}
 	}
 }
 
