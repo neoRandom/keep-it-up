@@ -11,8 +11,9 @@ const (
 )
 
 type SharedData struct {
-    Status       SharedDataStatus
-    DeadlineAt   *time.Time
-    LastSavedAt  *time.Time
-    LastPausedAt *time.Time
+	GameID       int64
+	Status       SharedDataStatus
+	DeadlineAt   *time.Time
+	LastSavedAt  *time.Time
+	LastPausedAt *time.Time
 }

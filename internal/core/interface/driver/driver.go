@@ -14,8 +14,8 @@ type GameManagement interface {
 }
 
 type AccessManagement interface {
-	GivePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
-	RemovePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
+	GrantPlayerAccess(ctx context.Context, gameId int64, playerId int64) error
+	RevokePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
 }
 
 type PlayerManagement interface {
