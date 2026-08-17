@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestGameCommands_AddGame(t *testing.T) {
+func TestGameManagement_AddGame(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	created, err := uc.AddGame(ctx, "Alpha")
 	if err != nil {
@@ -18,9 +18,9 @@ func TestGameCommands_AddGame(t *testing.T) {
 	}
 }
 
-func TestGameCommands_UpdateGame(t *testing.T) {
+func TestGameManagement_UpdateGame(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	created, err := uc.AddGame(ctx, "Alpha")
 	if err != nil {
@@ -40,9 +40,9 @@ func TestGameCommands_UpdateGame(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsInvalidGameNames(t *testing.T) {
+func TestGameManagement_RejectsInvalidGameNames(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	if _, err := uc.AddGame(ctx, "A"); err == nil {
 		t.Fatal("AddGame() accepted short name")
@@ -61,9 +61,9 @@ func TestGameCommands_RejectsInvalidGameNames(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsWhitespaceAndNilDependency(t *testing.T) {
+func TestGameManagement_RejectsWhitespaceAndNilDependency(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(nil)
+	uc := NewGameManagement(nil)
 
 	if _, err := uc.AddGame(ctx, "Alpha Beta"); err == nil {
 		t.Fatal("AddGame() accepted a name containing whitespace")
@@ -82,9 +82,9 @@ func TestGameCommands_RejectsWhitespaceAndNilDependency(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsInvalidIDs(t *testing.T) {
+func TestGameManagement_RejectsInvalidIDs(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	for _, id := range []int64{0, -1} {
 		if err := uc.UpdateGame(ctx, id, "Alpha"); err == nil {
@@ -96,10 +96,10 @@ func TestGameCommands_RejectsInvalidIDs(t *testing.T) {
 	}
 }
 
-func TestGameCommands_DeleteGame(t *testing.T) {
+func TestGameManagement_DeleteGame(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewGameCommands(queries)
+	uc := NewGameManagement(queries)
 
 	created, err := uc.AddGame(ctx, "Gamma")
 	if err != nil {
@@ -115,8 +115,8 @@ func TestGameCommands_DeleteGame(t *testing.T) {
 	}
 }
 
-func TestGameCommands_AddGameWithCancelledContext(t *testing.T) {
-	uc := NewGameCommands(newTestDB(t))
+func TestGameManagement_AddGameWithCancelledContext(t *testing.T) {
+	uc := NewGameManagement(newTestDB(t))
 
 	// Create a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -128,9 +128,9 @@ func TestGameCommands_AddGameWithCancelledContext(t *testing.T) {
 	}
 }
 
-func TestGameCommands_SuccessfulCRUDOperations(t *testing.T) {
+func TestGameManagement_SuccessfulCRUDOperations(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	// Create
 	created, err := uc.AddGame(ctx, "TestGame")
@@ -176,8 +176,8 @@ func TestGameCommands_SuccessfulCRUDOperations(t *testing.T) {
 	}
 }
 
-func TestGameCommands_UpdateGameWithCancelledContext(t *testing.T) {
-	uc := NewGameCommands(newTestDB(t))
+func TestGameManagement_UpdateGameWithCancelledContext(t *testing.T) {
+	uc := NewGameManagement(newTestDB(t))
 
 	created, _ := uc.AddGame(context.Background(), "Alpha")
 
@@ -189,8 +189,8 @@ func TestGameCommands_UpdateGameWithCancelledContext(t *testing.T) {
 	}
 }
 
-func TestGameCommands_DeleteGameWithCancelledContext(t *testing.T) {
-	uc := NewGameCommands(newTestDB(t))
+func TestGameManagement_DeleteGameWithCancelledContext(t *testing.T) {
+	uc := NewGameManagement(newTestDB(t))
 
 	created, _ := uc.AddGame(context.Background(), "Gamma")
 
@@ -202,9 +202,9 @@ func TestGameCommands_DeleteGameWithCancelledContext(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsInvalidGameNameFormats(t *testing.T) {
+func TestGameManagement_RejectsInvalidGameNameFormats(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	testCases := []struct {
 		name  string
@@ -234,9 +234,9 @@ func TestGameCommands_RejectsInvalidGameNameFormats(t *testing.T) {
 	}
 }
 
-func TestGameCommands_GameNameBoundaryValidation(t *testing.T) {
+func TestGameManagement_GameNameBoundaryValidation(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	// Test at the boundary: exactly 3 characters
 	if _, err := uc.AddGame(ctx, "ABC"); err != nil {
@@ -254,9 +254,9 @@ func TestGameCommands_GameNameBoundaryValidation(t *testing.T) {
 	}
 }
 
-func TestGameCommands_UpdateGameNameBoundaryValidation(t *testing.T) {
+func TestGameManagement_UpdateGameNameBoundaryValidation(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	created, _ := uc.AddGame(ctx, "InitialName")
 
@@ -271,11 +271,11 @@ func TestGameCommands_UpdateGameNameBoundaryValidation(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsNilQueriesDependencyInAllMethods(t *testing.T) {
+func TestGameManagement_RejectsNilQueriesDependencyInAllMethods(t *testing.T) {
 	ctx := context.Background()
 
-	// Create a GameCommands with nil queries
-	uc := &GameCommands{q: nil}
+	// Create a GameManagement with nil queries
+	uc := &GameManagement{q: nil}
 
 	// All methods should reject nil queries
 	if _, err := uc.AddGame(ctx, "Alpha"); err == nil {
@@ -291,9 +291,9 @@ func TestGameCommands_RejectsNilQueriesDependencyInAllMethods(t *testing.T) {
 	}
 }
 
-func TestGameCommands_RejectsInvalidIDsAcrossAllMethods(t *testing.T) {
+func TestGameManagement_RejectsInvalidIDsAcrossAllMethods(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	invalidIDs := []int64{-1, -100, 0}
 
@@ -308,18 +308,18 @@ func TestGameCommands_RejectsInvalidIDsAcrossAllMethods(t *testing.T) {
 	}
 }
 
-func TestGameCommands_AddGameEmptyName(t *testing.T) {
+func TestGameManagement_AddGameEmptyName(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	if _, err := uc.AddGame(ctx, ""); err == nil {
 		t.Fatal("AddGame() should reject empty name")
 	}
 }
 
-func TestGameCommands_SuccessfulGameOperationSequence(t *testing.T) {
+func TestGameManagement_SuccessfulGameOperationSequence(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameCommands(newTestDB(t))
+	uc := NewGameManagement(newTestDB(t))
 
 	// Create multiple games
 	games := make([]int64, 3)
