@@ -22,7 +22,7 @@ var (
 	ErrWrongArgCount     = errors.New("wrong number of arguments")
 )
 
-const usage = `keepitup — system management CLI
+const usage = `keepitup --- system management CLI
 
 Usage:
   keepitup <noun> <verb> [args...]
@@ -41,7 +41,7 @@ Nouns:
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <gameId> <playerId>
+  data     games <playerId>
            shared <gameId>
            interactions <gameId> <count>
   session  save <gameId> <playerId> <RFC3339 timestamp>
@@ -363,18 +363,14 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 	verb, rest := args[0], args[1:]
 	switch verb {
 	case "games":
-		if len(rest) != 2 {
-			return wrongArgs("data games", "data games <gameId> <playerId>")
+		if len(rest) != 1 {
+			return wrongArgs("data games", "data games <playerId>")
 		}
-		gameID, err := parseID(rest[0])
+		playerID, err := parseID(rest[0])
 		if err != nil {
 			return fmt.Errorf("data games: %w", err)
 		}
-		playerID, err := parseID(rest[1])
-		if err != nil {
-			return fmt.Errorf("data games: %w", err)
-		}
-		games, err := c.d.Data.ListPlayerGames(ctx, gameID, playerID)
+		games, err := c.d.Data.ListPlayerGames(ctx, playerID)
 		if err != nil {
 			return fmt.Errorf("data games: %w", err)
 		}

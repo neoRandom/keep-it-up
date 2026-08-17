@@ -30,7 +30,7 @@ Nouns:
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <gameId> <playerId>
+  data     games <playerId>
            shared <gameId>
            interactions <gameId> <count>
   session  save <gameId> <playerId> <RFC3339 timestamp>
