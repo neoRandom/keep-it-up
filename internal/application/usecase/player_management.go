@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"keep-it-up/internal/core/interface/driver"
 	"keep-it-up/internal/infrastructure/database"
@@ -38,13 +39,6 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		)
 	}
 
-	if !util.IsAlphanumeric(name) {
-		return database.Player{}, fmt.Errorf(
-			"Player name isn't purely alphanumeric: '%s'",
-			name,
-		)
-	}
-
 	username = strings.TrimSpace(username)
 
 	if len(username) < 3 {
@@ -62,6 +56,10 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	}
 
 	password = strings.TrimSpace(password)
+	
+	if password == username {
+		return database.Player{}, errors.New("player password cannot be equal to its username")
+	}
 
 	if err := uc.auth.IsPasswordValid(password); err != nil {
 		return database.Player{}, err
@@ -92,10 +90,6 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 
 	if len(name) < 2 {
 		return fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
-	}
-
-	if !util.IsAlphanumeric(name) {
-		return fmt.Errorf("Player name isn't purely alphanumeric: '%s'", name)
 	}
 
 	return uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
@@ -158,6 +152,10 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 	newPassword = strings.TrimSpace(newPassword)
 	if err := uc.auth.IsPasswordValid(newPassword); err != nil {
 		return err
+	}
+	
+	if newPassword == player.Username {
+		return errors.New("new player password cannot be equal to its username")
 	}
 
 	valid, err := uc.auth.CheckPlayerPassword(ctx, player.Username, currentPassword)

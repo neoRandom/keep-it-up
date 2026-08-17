@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"keep-it-up/internal/infrastructure/database"
-	"keep-it-up/internal/infrastructure/util"
 	"strings"
 )
 
@@ -30,13 +29,6 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 		)
 	}
 
-	if !util.IsAlphanumeric(name) {
-		return database.Game{}, fmt.Errorf(
-			"Game name isn't purely alphanumeric: '%s'",
-			name,
-		)
-	}
-
 	return uc.q.CreateGame(ctx, name)
 }
 
@@ -54,13 +46,6 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 	if len(name) < 3 {
 		return fmt.Errorf(
 			"New game name cannot have less than 3 characters: '%s'",
-			name,
-		)
-	}
-
-	if !util.IsAlphanumeric(name) {
-		return fmt.Errorf(
-			"New game name isn't purely alphanumeric: '%s'",
 			name,
 		)
 	}
