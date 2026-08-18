@@ -28,14 +28,22 @@ type AddInteractionParams struct {
 	OccurredAt string
 }
 
-func (q *Queries) AddInteraction(ctx context.Context, arg AddInteractionParams) (Interaction, error) {
+type AddInteractionRow struct {
+	ID         int64
+	GameID     int64
+	PlayerID   sql.NullInt64
+	Action     string
+	OccurredAt string
+}
+
+func (q *Queries) AddInteraction(ctx context.Context, arg AddInteractionParams) (AddInteractionRow, error) {
 	row := q.db.QueryRowContext(ctx, addInteraction,
 		arg.GameID,
 		arg.PlayerID,
 		arg.Action,
 		arg.OccurredAt,
 	)
-	var i Interaction
+	var i AddInteractionRow
 	err := row.Scan(
 		&i.ID,
 		&i.GameID,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/interface/driver"
+	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/util"
 	"strings"
@@ -61,11 +62,11 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		return database.Player{}, errors.New("player password cannot be equal to its username")
 	}
 
-	if err := uc.auth.IsPasswordValid(password); err != nil {
+	if err := service.IsPasswordValid(password); err != nil {
 		return database.Player{}, err
 	}
 
-	hashedPassword, err := uc.auth.GeneratePasswordHash(password)
+	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
 		return database.Player{}, err
 	}
@@ -112,11 +113,11 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 
 	password = strings.TrimSpace(password)
 
-	if err := uc.auth.IsPasswordValid(password); err != nil {
+	if err := service.IsPasswordValid(password); err != nil {
 		return err
 	}
 
-	hashedPassword, err := uc.auth.GeneratePasswordHash(password)
+	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
 		return err
 	}
@@ -145,12 +146,12 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 	}
 
 	currentPassword = strings.TrimSpace(currentPassword)
-	if err := uc.auth.IsPasswordValid(currentPassword); err != nil {
+	if err := service.IsPasswordValid(currentPassword); err != nil {
 		return err
 	}
 
 	newPassword = strings.TrimSpace(newPassword)
-	if err := uc.auth.IsPasswordValid(newPassword); err != nil {
+	if err := service.IsPasswordValid(newPassword); err != nil {
 		return err
 	}
 	
@@ -181,7 +182,7 @@ func (uc *PlayerManagement) UpdatePlayerPasswordForce(ctx context.Context, id in
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
 
-	if err := uc.auth.IsPasswordValid(password); err != nil {
+	if err := service.IsPasswordValid(password); err != nil {
 		return err
 	}
 

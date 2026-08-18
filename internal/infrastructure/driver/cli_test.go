@@ -6,7 +6,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driver"
@@ -31,13 +30,13 @@ func (m *mockGames) DeleteGame(ctx context.Context, id int64) error {
 }
 
 type mockCommands struct {
-	SaveGameFunc   func(ctx context.Context, gameID, playerID int64, amount time.Time) error
+	SaveGameFunc   func(ctx context.Context, gameID, playerID int64, duration int64) error
 	ResumeGameFunc func(ctx context.Context, gameID, playerID int64) error
 	PauseGameFunc  func(ctx context.Context, gameID, playerID int64) error
 }
 
-func (m *mockCommands) SaveGame(ctx context.Context, gameID, playerID int64, amount time.Time) error {
-	return m.SaveGameFunc(ctx, gameID, playerID, amount)
+func (m *mockCommands) SaveGame(ctx context.Context, gameID, playerID int64, duration int64) error {
+	return m.SaveGameFunc(ctx, gameID, playerID, duration)
 }
 func (m *mockCommands) ResumeGame(ctx context.Context, gameID, playerID int64) error {
 	return m.ResumeGameFunc(ctx, gameID, playerID)
@@ -117,19 +116,22 @@ func TestCLI_Run(t *testing.T) {
 		// Session subcommand tests
 		{
 			name: "session save success",
-			args: []string{"session", "save", "10", "20", "2026-08-17T09:46:15Z"},
+			args: []string{"session", "save", "10", "20", "300"},
 			setupMocks: func(d *driver.Deps) {
 				d.Commands = &mockCommands{
-					SaveGameFunc: func(ctx context.Context, gameID, playerID int64, amount time.Time) error {
+					SaveGameFunc: func(ctx context.Context, gameID, playerID int64, duration int64) error {
 						if gameID != 10 || playerID != 20 {
 							t.Errorf("unexpected IDs")
+						}
+						if duration != 300 {
+							t.Errorf("expected duration 300, got %d", duration)
 						}
 						return nil
 					},
 				}
 			},
 			expectedErr:    nil,
-			expectedStdout: "game 10 saved for player 20 at 2026-08-17T09:46:15Z\n",
+			expectedStdout: "game 10 saved by player 20 for 300 min\n",
 		},
 		{
 			name: "session save with invalid timestamp",

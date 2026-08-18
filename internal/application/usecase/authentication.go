@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,31 +19,6 @@ func NewAuthentication(q *database.Queries) *Authentication {
 	return &Authentication{q: q}
 }
 
-func (uc *Authentication) IsPasswordValid(password string) error {
-	if strings.ContainsRune(password, ' ') {
-		return fmt.Errorf("Password cannot have whitespaces")
-	}
-
-	if len(password) < 6 {
-		return fmt.Errorf("Password cannot have less than 6 characters")
-	}
-
-	return nil
-}
-
-func (uc *Authentication) GeneratePasswordHash(password string) (string, error) {
-	if err := uc.IsPasswordValid(password); err != nil {
-		return "", err
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(hash), nil
-}
-
 func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username string, password string) (bool, error) {
 	if uc.q == nil {
 		return false, fmt.Errorf("database queries are not initialized")
@@ -53,7 +28,7 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 		return false, fmt.Errorf("Username cannot have less than 3 characters: '%s'", username)
 	}
 
-	if err := uc.IsPasswordValid(password); err != nil {
+	if err := service.IsPasswordValid(password); err != nil {
 		return false, err
 	}
 

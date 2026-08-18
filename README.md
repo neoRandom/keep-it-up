@@ -20,22 +20,22 @@ Nouns:
   game     add <name>
            update <id> <name>
            delete <id>
-  access   grant <gameId> <playerId>
-           revoke <gameId> <playerId>
+  access   grant <game id> <player id>
+           revoke <game id> <player id>
   player   add <name> <username> <password>
            rename <id> <name>
-           passwd <id> <currentPassword> <newPassword>
+           passwd <id> <current password> <new password>
            passwd-force <id> <password>
            delete <id>
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <playerId>
-           shared <gameId>
-           interactions <gameId> <count>
-  session  save <gameId> <playerId> <RFC3339 timestamp>
-           resume <gameId> <playerId>
-           pause <gameId> <playerId>
+  data     games <player id>
+           shared <game id>
+           interactions <game id> <limit>
+  session  save <game id> <player id> <duration in seconds>
+           resume <game id> <player id>
+           pause <game id> <player id>
 ```
 
 ## HTTP API

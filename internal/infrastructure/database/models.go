@@ -24,6 +24,7 @@ type Interaction struct {
 	PlayerID   sql.NullInt64
 	Action     string
 	OccurredAt string
+	SavedBy    sql.NullInt64
 }
 
 type Player struct {
