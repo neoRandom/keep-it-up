@@ -35,7 +35,7 @@ type Authentication interface {
 
 type DataFetching interface {
 	ListPlayerGames(ctx context.Context, playerId int64) ([]database.Game, error)
-	GetSharedData(ctx context.Context, gameId int64) (model.SharedData, error)
+	GetSharedData(ctx context.Context, gameId int64) (*model.SharedData, error)
 	ListInteractions(ctx context.Context, gameId int64, limit int64) ([]database.Interaction, error)
 }
 

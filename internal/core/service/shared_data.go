@@ -9,14 +9,16 @@ import (
 	"keep-it-up/internal/infrastructure/database"
 )
 
-func BuildSharedData(interactions []database.Interaction) (*model.SharedData, error) {
-	if len(interactions) == 0 {
-		return nil, fmt.Errorf("build shared data: empty interaction slice")
+func BuildSharedData(
+	gameId int64, interactions []database.Interaction,
+) (*model.SharedData, error) {
+	data := &model.SharedData{
+		GameID: gameId,
+		Status: model.NotStarted,
 	}
 
-	data := &model.SharedData{
-		GameID: interactions[0].GameID,
-		Status: model.NotStarted,
+	if len(interactions) == 0 {
+		return data, nil
 	}
 
 	var prevOccurredAt time.Time

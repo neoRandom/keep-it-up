@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 )
 
@@ -32,8 +33,23 @@ func (uc *DataFetching) ListPlayerGames(
 
 func (uc *DataFetching) GetSharedData(
 	ctx context.Context, gameId int64,
-) (model.SharedData, error) {
-	return model.SharedData{}, nil
+) (*model.SharedData, error) {
+	if uc.q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+
+	if gameId < 1 {
+		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+	}
+
+	interactions, err := uc.q.ListInteractionsForReplay(ctx, gameId)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to list interactions for replay: %w", err,
+		)
+	}
+
+	return service.BuildSharedData(gameId, interactions)
 }
 
 func (uc *DataFetching) ListInteractions(
