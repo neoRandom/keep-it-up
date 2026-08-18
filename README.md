@@ -32,7 +32,7 @@ Nouns:
            check-passwd <username> <password>
   data     games <playerId>
            shared <gameId>
-           interactions <gameId> <count>
+           interactions <gameId> <limit>
   session  save <gameId> <playerId> <RFC3339 timestamp>
            resume <gameId> <playerId>
            pause <gameId> <playerId>

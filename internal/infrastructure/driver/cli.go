@@ -43,7 +43,7 @@ Nouns:
            check-passwd <username> <password>
   data     games <playerId>
            shared <gameId>
-           interactions <gameId> <count>
+           interactions <gameId> <limit>
   session  save <gameId> <playerId> <RFC3339 timestamp>
            resume <gameId> <playerId>
            pause <gameId> <playerId>
@@ -396,17 +396,17 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 
 	case "interactions":
 		if len(rest) != 2 {
-			return wrongArgs("data interactions", "data interactions <gameId> <count>")
+			return wrongArgs("data interactions", "data interactions <gameId> <limit>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
 			return fmt.Errorf("data interactions: %w", err)
 		}
-		count, err := strconv.Atoi(rest[1])
+		limit, err := strconv.ParseInt(rest[1], 10, 64)
 		if err != nil {
-			return fmt.Errorf("data interactions: invalid count %q: %w", rest[1], err)
+			return fmt.Errorf("data interactions: invalid limit %q: %w", rest[1], err)
 		}
-		interactions, err := c.d.Data.ListInteractions(ctx, gameID, count)
+		interactions, err := c.d.Data.ListInteractions(ctx, gameID, limit)
 		if err != nil {
 			return fmt.Errorf("data interactions: %w", err)
 		}
