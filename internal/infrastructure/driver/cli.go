@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	
+
 	driverport "keep-it-up/internal/core/interface/driver"
+	"keep-it-up/internal/core/service"
 )
 
-// Sentinel errors distinguish CLI-usage failures (bad noun, bad verb, wrong
-// arg count) from errors returned by the use cases themselves. Tests and
-// callers can discriminate with errors.Is instead of string-matching.
 var (
 	ErrNoCommand         = errors.New("no command given")
 	ErrNoSubcommand      = errors.New("no subcommand given")
@@ -74,16 +72,10 @@ type CLI struct {
 	d Deps
 }
 
-// New constructs a CLI adapter. Every dependency is explicit — there is no
-// fallback to os.Stdout/os.Stderr — so tests never need to intercept global
-// state to observe output.
 func New(d Deps) *CLI {
 	return &CLI{d: d}
 }
 
-// Run parses args (typically os.Args[1:]) and dispatches to the matching
-// use case. It returns a non-nil error on any usage problem or use-case
-// failure; the caller (main) decides how that maps to an exit code.
 func (c *CLI) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		fmt.Fprint(c.d.Stderr, usage)
@@ -320,7 +312,7 @@ func (c *CLI) runAuth(ctx context.Context, args []string) error {
 		if len(rest) != 1 {
 			return wrongArgs("auth validate-passwd", "auth validate-passwd <password>")
 		}
-		if err := c.d.Auth.IsPasswordValid(rest[0]); err != nil {
+		if err := service.IsPasswordValid(rest[0]); err != nil {
 			return fmt.Errorf("auth validate-passwd: %w", err)
 		}
 		fmt.Fprintln(c.d.Stdout, "valid")
@@ -330,7 +322,7 @@ func (c *CLI) runAuth(ctx context.Context, args []string) error {
 		if len(rest) != 1 {
 			return wrongArgs("auth hash-passwd", "auth hash-passwd <password>")
 		}
-		hash, err := c.d.Auth.GeneratePasswordHash(rest[0])
+		hash, err := service.GeneratePasswordHash(rest[0])
 		if err != nil {
 			return fmt.Errorf("auth hash-passwd: %w", err)
 		}
