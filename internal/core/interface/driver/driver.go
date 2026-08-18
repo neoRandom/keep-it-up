@@ -4,7 +4,6 @@ import (
 	"context"
 	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
-	"time"
 )
 
 type GameManagement interface {
@@ -40,7 +39,7 @@ type DataFetching interface {
 }
 
 type GameCommands interface {
-	SaveGame(ctx context.Context, gameId int64, playerId int64, amount time.Time) error
+	SaveGame(ctx context.Context, gameId int64, playerId int64, duration int64) error
 	ResumeGame(ctx context.Context, gameId int64, playerId int64) error
 	PauseGame(ctx context.Context, gameId int64, playerId int64) error
 }

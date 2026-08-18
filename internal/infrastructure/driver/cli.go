@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
-
+	
 	driverport "keep-it-up/internal/core/interface/driver"
 )
 
@@ -31,22 +30,22 @@ Nouns:
   game     add <name>
            update <id> <name>
            delete <id>
-  access   grant <gameId> <playerId>
-           revoke <gameId> <playerId>
+  access   grant <game id> <player id>
+           revoke <game id> <player id>
   player   add <name> <username> <password>
            rename <id> <name>
-           passwd <id> <currentPassword> <newPassword>
+           passwd <id> <current password> <new password>
            passwd-force <id> <password>
            delete <id>
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <playerId>
-           shared <gameId>
-           interactions <gameId> <limit>
-  session  save <gameId> <playerId> <RFC3339 timestamp>
-           resume <gameId> <playerId>
-           pause <gameId> <playerId>
+  data     games <player id>
+           shared <game id>
+           interactions <game id> <limit>
+  session  save <game id> <player id> <duration in seconds>
+           resume <game id> <player id>
+           pause <game id> <player id>
 `
 
 // Deps groups the driver ports and I/O streams the CLI needs. It is a
@@ -190,7 +189,7 @@ func (c *CLI) runAccess(ctx context.Context, args []string) error {
 	switch verb {
 	case "grant":
 		if len(rest) != 2 {
-			return wrongArgs("access grant", "access grant <gameId> <playerId>")
+			return wrongArgs("access grant", "access grant <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -208,7 +207,7 @@ func (c *CLI) runAccess(ctx context.Context, args []string) error {
 
 	case "revoke":
 		if len(rest) != 2 {
-			return wrongArgs("access revoke", "access revoke <gameId> <playerId>")
+			return wrongArgs("access revoke", "access revoke <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -264,7 +263,7 @@ func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 
 	case "passwd":
 		if len(rest) != 3 {
-			return wrongArgs("player passwd", "player passwd <id> <currentPassword> <newPassword>")
+			return wrongArgs("player passwd", "player passwd <id> <current password> <new password>")
 		}
 		id, err := parseID(rest[0])
 		if err != nil {
@@ -364,7 +363,7 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 	switch verb {
 	case "games":
 		if len(rest) != 1 {
-			return wrongArgs("data games", "data games <playerId>")
+			return wrongArgs("data games", "data games <player id>")
 		}
 		playerID, err := parseID(rest[0])
 		if err != nil {
@@ -381,7 +380,7 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 
 	case "shared":
 		if len(rest) != 1 {
-			return wrongArgs("data shared", "data shared <gameId>")
+			return wrongArgs("data shared", "data shared <game id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -396,7 +395,7 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 
 	case "interactions":
 		if len(rest) != 2 {
-			return wrongArgs("data interactions", "data interactions <gameId> <limit>")
+			return wrongArgs("data interactions", "data interactions <game id> <limit>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -434,7 +433,7 @@ func (c *CLI) runSession(ctx context.Context, args []string) error {
 	switch verb {
 	case "save":
 		if len(rest) != 3 {
-			return wrongArgs("session save", "session save <gameId> <playerId> <RFC3339 timestamp>")
+			return wrongArgs("session save", "session save <game id> <player id> <duration in seconds>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -444,23 +443,19 @@ func (c *CLI) runSession(ctx context.Context, args []string) error {
 		if err != nil {
 			return fmt.Errorf("session save: %w", err)
 		}
-		// GameCommands.SaveGame's third parameter is typed time.Time but
-		// named "amount"; treated here as the checkpoint timestamp to save
-		// against, parsed as RFC3339. Adjust if it actually means something
-		// else (e.g. an elapsed duration serialized as a time.Time).
-		amount, err := time.Parse(time.RFC3339, rest[2])
+		duration, err := strconv.ParseInt(rest[2], 10, 64)
 		if err != nil {
 			return fmt.Errorf("session save: invalid timestamp %q: %w", rest[2], err)
 		}
-		if err := c.d.Commands.SaveGame(ctx, gameID, playerID, amount); err != nil {
+		if err := c.d.Commands.SaveGame(ctx, gameID, playerID, duration); err != nil {
 			return fmt.Errorf("session save: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "game %d saved for player %d at %s\n", gameID, playerID, amount.Format(time.RFC3339))
+		fmt.Fprintf(c.d.Stdout, "game %d saved by player %d for %d min\n", gameID, playerID, duration)
 		return nil
 
 	case "resume":
 		if len(rest) != 2 {
-			return wrongArgs("session resume", "session resume <gameId> <playerId>")
+			return wrongArgs("session resume", "session resume <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -478,7 +473,7 @@ func (c *CLI) runSession(ctx context.Context, args []string) error {
 
 	case "pause":
 		if len(rest) != 2 {
-			return wrongArgs("session pause", "session pause <gameId> <playerId>")
+			return wrongArgs("session pause", "session pause <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {

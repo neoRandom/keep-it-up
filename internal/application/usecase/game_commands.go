@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"time"
 )
 
 type GameCommands struct{}
@@ -12,7 +11,7 @@ func NewGameCommands() *GameCommands {
 }
 
 func (uc *GameCommands) SaveGame(
-	ctx context.Context, gameId int64, playerId int64, amount time.Time,
+	ctx context.Context, gameId int64, playerId int64, duration int64,
 ) error {
 	return nil
 }
