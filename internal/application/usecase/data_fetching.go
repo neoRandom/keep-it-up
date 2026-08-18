@@ -2,20 +2,32 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
 )
 
-type DataFetching struct{}
+type DataFetching struct {
+	q *database.Queries
+}
 
-func NewDataFetching() *DataFetching {
-	return &DataFetching{}
+func NewDataFetching(q *database.Queries) *DataFetching {
+	return &DataFetching{q: q}
 }
 
 func (uc *DataFetching) ListPlayerGames(
 	ctx context.Context, playerId int64,
 ) ([]database.Game, error) {
-	return nil, nil
+	if uc.q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+
+	if playerId < 1 {
+		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
+	}
+
+	return uc.q.ListPlayerGames(ctx, playerId)
 }
 
 func (uc *DataFetching) GetSharedData(
@@ -25,7 +37,25 @@ func (uc *DataFetching) GetSharedData(
 }
 
 func (uc *DataFetching) ListInteractions(
-	ctx context.Context, gameId int64, count int,
+	ctx context.Context, gameId int64, limit int64,
 ) ([]database.Interaction, error) {
-	return nil, nil
+	if uc.q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+
+	if gameId < 1 {
+		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+	}
+
+	if limit < 0 {
+		return nil, errors.New("query limit cannot be less than 0")
+	}
+
+	return uc.q.ListRecentInteractions(
+		ctx,
+		database.ListRecentInteractionsParams{
+			GameID: gameId,
+			Limit:  limit,
+		},
+	)
 }

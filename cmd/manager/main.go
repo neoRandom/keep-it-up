@@ -57,7 +57,7 @@ func run() int {
 		Access:   usecase.NewAccessManagement(q),
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
-		Data:     usecase.NewDataFetching(),
+		Data:     usecase.NewDataFetching(q),
 		Commands: usecase.NewGameCommands(),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
