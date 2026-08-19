@@ -92,10 +92,7 @@ END;
 
 DROP TRIGGER IF EXISTS trg_interactions_state_machine;
 
-DROP INDEX idx_players_username;
-DROP INDEX idx_interactions_game_occurred;
-
-DROP TABLE interactions;
-DROP TABLE access;
-DROP TABLE players;
-DROP TABLE games;
+DROP TABLE IF EXISTS interactions;
+DROP TABLE IF EXISTS access;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS games;
