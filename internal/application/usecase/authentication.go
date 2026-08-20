@@ -53,3 +53,9 @@ func (uc *Authentication) LoginPlayer(
 	// TODO: Needed for web-based authentication
 	return model.AuthResult{}, nil
 }
+
+func (uc *Authentication) ValidateSession(
+	ctx context.Context, token string,
+) (database.Player, error) {
+	return database.Player{}, nil
+}
