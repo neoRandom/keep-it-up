@@ -1,0 +1,10 @@
+{
+    "material-icon-theme.folders.associations": {
+        "internal": "src",
+        "port": "interface",
+        "usecase": "controller",
+        "queries": "scripts",
+        "driven": "connection",
+        "driver": "trigger"
+    }
+}
