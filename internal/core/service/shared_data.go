@@ -9,6 +9,15 @@ import (
 	"keep-it-up/internal/infrastructure/database"
 )
 
+func ComputeValid(s *model.SharedData, now time.Time) {
+	if s.DeadlineAt == nil {
+		s.Valid = nil
+		return
+	}
+	valid := now.Before(*s.DeadlineAt)
+	s.Valid = &valid
+}
+
 func BuildSharedData(
 	gameId int64, interactions []database.Interaction,
 ) (*model.SharedData, error) {
