@@ -56,7 +56,7 @@ func (uc *GameCommands) SaveGame(
 	_, err = uc.q.SaveGame(ctx, database.SaveGameParams{
 		GameID:     gameId,
 		PlayerID:   sql.NullInt64{Int64: playerId, Valid: true},
-		OccurredAt: t.Format(constant.ISO8601Layout),
+		OccurredAt: t.Format(constant.DBDatetimeFormat),
 		SavedBy:    sql.NullInt64{Int64: duration, Valid: true},
 	})
 
@@ -90,7 +90,7 @@ func (uc *GameCommands) ResumeGame(
 	_, err = uc.q.ResumeGame(ctx, database.ResumeGameParams{
 		GameID:     gameId,
 		PlayerID:   sql.NullInt64{Int64: playerId, Valid: true},
-		OccurredAt: t.Format(constant.ISO8601Layout),
+		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
 
 	return err
@@ -123,7 +123,7 @@ func (uc *GameCommands) PauseGame(
 	_, err = uc.q.PauseGame(ctx, database.PauseGameParams{
 		GameID:     gameId,
 		PlayerID:   sql.NullInt64{Int64: playerId, Valid: true},
-		OccurredAt: t.Format(constant.ISO8601Layout),
+		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
 
 	return err
