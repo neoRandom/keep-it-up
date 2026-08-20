@@ -14,7 +14,8 @@ const (
 )
 
 type SharedData struct {
-	GameID       int64
+	GameID int64
+	// TODO: add `Valid` field - check if deadline was reached already
 	Status       SharedDataStatus
 	DeadlineAt   *time.Time
 	LastSavedAt  *time.Time
@@ -22,6 +23,6 @@ type SharedData struct {
 }
 
 type AuthResult struct {
-    Token  string
-    Player database.Player
+	Token  string
+	Player database.Player
 }

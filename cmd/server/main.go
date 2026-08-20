@@ -10,7 +10,7 @@ func main() {
 
 	e.GET("/", func(ctx echo.Context) error {
 		return ctx.JSON(
-			http.StatusNoContent, 
+			http.StatusNoContent,
 			map[string]string{"message": "Not implemented yet!"},
 		)
 	})

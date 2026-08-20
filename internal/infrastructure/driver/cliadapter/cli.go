@@ -19,7 +19,7 @@ var (
 	ErrWrongArgCount     = errors.New("wrong number of arguments")
 )
 
-const usage = `keepitup --- system management CLI
+const usage = `keep-it-up --- system management CLI
 
 Usage:
   keepitup <noun> <verb> [args...]
@@ -38,10 +38,10 @@ Nouns:
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <player id>
+  fetch    games <player id>
            shared <game id>
            interactions <game id> <limit>
-  session  save <game id> <player id> <duration in seconds>
+  command  save <game id> <player id> <duration in seconds>
            resume <game id> <player id>
            pause <game id> <player id>
 `
@@ -60,7 +60,7 @@ type Deps struct {
 	Access   port.AccessManagement
 	Players  port.PlayerManagement
 	Auth     port.Authentication
-	Data     port.DataFetching
+	Fetch    port.DataFetching
 	Commands port.GameCommands
 
 	Stdout io.Writer
@@ -93,9 +93,9 @@ func (c *CLI) Run(ctx context.Context, args []string) error {
 	case "auth":
 		return c.runAuth(ctx, rest)
 	case "data":
-		return c.runData(ctx, rest)
-	case "session":
-		return c.runSession(ctx, rest)
+		return c.runFetch(ctx, rest)
+	case "command":
+		return c.runCommand(ctx, rest)
 	case "help", "-h", "--help":
 		fmt.Fprint(c.d.Stdout, usage)
 		return nil
@@ -119,7 +119,7 @@ func wrongArgs(cmd, usage string) error {
 	return fmt.Errorf("%s: %w (usage: %s)", cmd, ErrWrongArgCount, usage)
 }
 
-// --- game: driverport.GameManagement ---------------------------------------
+// --- game: port.GameManagement ---------------------------------------
 
 func (c *CLI) runGame(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -171,7 +171,7 @@ func (c *CLI) runGame(ctx context.Context, args []string) error {
 	}
 }
 
-// --- access: driverport.AccessManagement -----------------------------------
+// --- access: port.AccessManagement -----------------------------------
 
 func (c *CLI) runAccess(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -220,7 +220,7 @@ func (c *CLI) runAccess(ctx context.Context, args []string) error {
 	}
 }
 
-// --- player: driverport.PlayerManagement -----------------------------------
+// --- player: port.PlayerManagement -----------------------------------
 
 func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -300,7 +300,7 @@ func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 	}
 }
 
-// --- auth: driverport.Authentication, minus LoginPlayer --------------------
+// --- auth: port.Authentication, minus LoginPlayer --------------------
 
 func (c *CLI) runAuth(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -345,9 +345,9 @@ func (c *CLI) runAuth(ctx context.Context, args []string) error {
 	}
 }
 
-// --- data: driverport.DataFetching ------------------------------------------
+// --- data: port.DataFetching ------------------------------------------
 
-func (c *CLI) runData(ctx context.Context, args []string) error {
+func (c *CLI) runFetch(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("data: %w", ErrNoSubcommand)
 	}
@@ -355,15 +355,15 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 	switch verb {
 	case "games":
 		if len(rest) != 1 {
-			return wrongArgs("data games", "data games <player id>")
+			return wrongArgs("fetch games", "fetch games <player id>")
 		}
 		playerID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("data games: %w", err)
+			return fmt.Errorf("fetch games: %w", err)
 		}
-		games, err := c.d.Data.ListPlayerGames(ctx, playerID)
+		games, err := c.d.Fetch.ListPlayerGames(ctx, playerID)
 		if err != nil {
-			return fmt.Errorf("data games: %w", err)
+			return fmt.Errorf("fetch games: %w", err)
 		}
 		for _, g := range games {
 			fmt.Fprintf(c.d.Stdout, "%+v\n", g)
@@ -372,34 +372,34 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 
 	case "shared":
 		if len(rest) != 1 {
-			return wrongArgs("data shared", "data shared <game id>")
+			return wrongArgs("fetch shared", "fetch shared <game id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("data shared: %w", err)
+			return fmt.Errorf("fetch shared: %w", err)
 		}
-		shared, err := c.d.Data.GetSharedData(ctx, gameID)
+		shared, err := c.d.Fetch.GetSharedData(ctx, gameID)
 		if err != nil {
-			return fmt.Errorf("data shared: %w", err)
+			return fmt.Errorf("fetch shared: %w", err)
 		}
 		fmt.Fprintf(c.d.Stdout, "%+v\n", shared)
 		return nil
 
 	case "interactions":
 		if len(rest) != 2 {
-			return wrongArgs("data interactions", "data interactions <game id> <limit>")
+			return wrongArgs("fetch interactions", "fetch interactions <game id> <limit>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("data interactions: %w", err)
+			return fmt.Errorf("fetch interactions: %w", err)
 		}
 		limit, err := strconv.ParseInt(rest[1], 10, 64)
 		if err != nil {
-			return fmt.Errorf("data interactions: invalid limit %q: %w", rest[1], err)
+			return fmt.Errorf("fetch interactions: invalid limit %q: %w", rest[1], err)
 		}
-		interactions, err := c.d.Data.ListInteractions(ctx, gameID, limit)
+		interactions, err := c.d.Fetch.ListInteractions(ctx, gameID, limit)
 		if err != nil {
-			return fmt.Errorf("data interactions: %w", err)
+			return fmt.Errorf("fetch interactions: %w", err)
 		}
 		for _, i := range interactions {
 			fmt.Fprintf(c.d.Stdout, "%+v\n", i)
@@ -407,81 +407,81 @@ func (c *CLI) runData(ctx context.Context, args []string) error {
 		return nil
 
 	default:
-		return fmt.Errorf("data %s: %w", verb, ErrUnknownSubcommand)
+		return fmt.Errorf("fetch %s: %w", verb, ErrUnknownSubcommand)
 	}
 }
 
-// --- session: driverport.GameCommands ---------------------------------------
+// --- command: port.GameCommands ---------------------------------------
 //
-// Named "session" rather than "game-cmd" to keep the noun namespace
+// Named "command" rather than "game-cmd" to keep the noun namespace
 // readable; it maps 1:1 onto GameCommands (save/resume/pause) and doesn't
 // overlap with the "game" noun (GameManagement: add/update/delete).
 
-func (c *CLI) runSession(ctx context.Context, args []string) error {
+func (c *CLI) runCommand(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("session: %w", ErrNoSubcommand)
+		return fmt.Errorf("command: %w", ErrNoSubcommand)
 	}
 	verb, rest := args[0], args[1:]
 	switch verb {
 	case "save":
 		if len(rest) != 3 {
-			return wrongArgs("session save", "session save <game id> <player id> <duration in seconds>")
+			return wrongArgs("command save", "command save <game id> <player id> <duration in seconds>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("session save: %w", err)
+			return fmt.Errorf("command save: %w", err)
 		}
 		playerID, err := parseID(rest[1])
 		if err != nil {
-			return fmt.Errorf("session save: %w", err)
+			return fmt.Errorf("command save: %w", err)
 		}
 		duration, err := strconv.ParseInt(rest[2], 10, 64)
 		if err != nil {
-			return fmt.Errorf("session save: invalid timestamp %q: %w", rest[2], err)
+			return fmt.Errorf("command save: invalid timestamp %q: %w", rest[2], err)
 		}
 		if err := c.d.Commands.SaveGame(ctx, gameID, playerID, duration); err != nil {
-			return fmt.Errorf("session save: %w", err)
+			return fmt.Errorf("command save: %w", err)
 		}
 		fmt.Fprintf(c.d.Stdout, "game %d saved by player %d for %d min\n", gameID, playerID, duration)
 		return nil
 
 	case "resume":
 		if len(rest) != 2 {
-			return wrongArgs("session resume", "session resume <game id> <player id>")
+			return wrongArgs("command resume", "command resume <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("session resume: %w", err)
+			return fmt.Errorf("command resume: %w", err)
 		}
 		playerID, err := parseID(rest[1])
 		if err != nil {
-			return fmt.Errorf("session resume: %w", err)
+			return fmt.Errorf("command resume: %w", err)
 		}
 		if err := c.d.Commands.ResumeGame(ctx, gameID, playerID); err != nil {
-			return fmt.Errorf("session resume: %w", err)
+			return fmt.Errorf("command resume: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "game %d resumed for player %d\n", gameID, playerID)
+		fmt.Fprintf(c.d.Stdout, "game %d resumed by player %d\n", gameID, playerID)
 		return nil
 
 	case "pause":
 		if len(rest) != 2 {
-			return wrongArgs("session pause", "session pause <game id> <player id>")
+			return wrongArgs("command pause", "command pause <game id> <player id>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
-			return fmt.Errorf("session pause: %w", err)
+			return fmt.Errorf("command pause: %w", err)
 		}
 		playerID, err := parseID(rest[1])
 		if err != nil {
-			return fmt.Errorf("session pause: %w", err)
+			return fmt.Errorf("command pause: %w", err)
 		}
 		if err := c.d.Commands.PauseGame(ctx, gameID, playerID); err != nil {
-			return fmt.Errorf("session pause: %w", err)
+			return fmt.Errorf("command pause: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "game %d paused for player %d\n", gameID, playerID)
+		fmt.Fprintf(c.d.Stdout, "game %d paused by player %d\n", gameID, playerID)
 		return nil
 
 	default:
-		return fmt.Errorf("session %s: %w", verb, ErrUnknownSubcommand)
+		return fmt.Errorf("command %s: %w", verb, ErrUnknownSubcommand)
 	}
 }

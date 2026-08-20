@@ -57,7 +57,7 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	}
 
 	password = strings.TrimSpace(password)
-	
+
 	if password == username {
 		return database.Player{}, errors.New("player password cannot be equal to its username")
 	}
@@ -154,7 +154,7 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 	if err := service.IsPasswordValid(newPassword); err != nil {
 		return err
 	}
-	
+
 	if newPassword == player.Username {
 		return errors.New("new player password cannot be equal to its username")
 	}

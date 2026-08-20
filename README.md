@@ -30,10 +30,10 @@ Nouns:
   auth     validate-passwd <password>
            hash-passwd <password>
            check-passwd <username> <password>
-  data     games <player id>
+  fetch    games <player id>
            shared <game id>
            interactions <game id> <limit>
-  session  save <game id> <player id> <duration in seconds>
+  command  save <game id> <player id> <duration in seconds>
            resume <game id> <player id>
            pause <game id> <player id>
 ```

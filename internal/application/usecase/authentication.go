@@ -50,6 +50,6 @@ func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username stri
 func (uc *Authentication) LoginPlayer(
 	ctx context.Context, username string, password string,
 ) (model.AuthResult, error) {
-	// TODO: Implement
+	// TODO: Needed for web-based authentication
 	return model.AuthResult{}, nil
 }
