@@ -1,4 +1,4 @@
-package driver_test
+package cliadapter_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"keep-it-up/internal/infrastructure/database"
-	"keep-it-up/internal/infrastructure/driver"
+	"keep-it-up/internal/infrastructure/driver/cliadapter"
 )
 
 // --- Mocks ---
@@ -54,7 +54,7 @@ func TestCLI_Run(t *testing.T) {
 	tests := []struct {
 		name           string
 		args           []string
-		setupMocks     func(d *driver.Deps)
+		setupMocks     func(d *cliadapter.Deps)
 		expectedErr    error
 		expectedStdout string
 		expectedStderr string
@@ -63,7 +63,7 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name:        "no arguments returns ErrNoCommand",
 			args:        []string{},
-			expectedErr: driver.ErrNoCommand,
+			expectedErr: cliadapter.ErrNoCommand,
 			expectedStderr: "Usage:", 
 		},
 		{
@@ -75,7 +75,7 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name:        "unknown noun returns ErrUnknownCommand",
 			args:        []string{"unknown-noun"},
-			expectedErr: driver.ErrUnknownCommand,
+			expectedErr: cliadapter.ErrUnknownCommand,
 			expectedStderr: "Usage:",
 		},
 
@@ -83,12 +83,12 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name: "game without verb returns ErrNoSubcommand",
 			args: []string{"game"},
-			expectedErr: driver.ErrNoSubcommand,
+			expectedErr: cliadapter.ErrNoSubcommand,
 		},
 		{
 			name: "game add success",
 			args: []string{"game", "add", "MyGame"},
-			setupMocks: func(d *driver.Deps) {
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Games = &mockGames{
 					AddGameFunc: func(ctx context.Context, name string) (database.Game, error) {
 						if name != "MyGame" {
@@ -104,7 +104,7 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name: "game add fails wrong arg count",
 			args: []string{"game", "add", "Too", "Many"},
-			expectedErr: driver.ErrWrongArgCount,
+			expectedErr: cliadapter.ErrWrongArgCount,
 		},
 		{
 			name: "game update invalid id",
@@ -117,7 +117,7 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name: "session save success",
 			args: []string{"session", "save", "10", "20", "300"},
-			setupMocks: func(d *driver.Deps) {
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Commands = &mockCommands{
 					SaveGameFunc: func(ctx context.Context, gameID, playerID int64, duration int64) error {
 						if gameID != 10 || playerID != 20 {
@@ -141,7 +141,7 @@ func TestCLI_Run(t *testing.T) {
 		{
 			name: "session resume business error",
 			args: []string{"session", "resume", "1", "2"},
-			setupMocks: func(d *driver.Deps) {
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Commands = &mockCommands{
 					ResumeGameFunc: func(ctx context.Context, gameID, playerID int64) error {
 						return dummyErr
@@ -157,7 +157,7 @@ func TestCLI_Run(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
 			// Construct dependencies
-			deps := driver.Deps{
+			deps := cliadapter.Deps{
 				Stdout: &stdout,
 				Stderr: &stderr,
 			}
@@ -167,7 +167,7 @@ func TestCLI_Run(t *testing.T) {
 				tt.setupMocks(&deps)
 			}
 
-			cliApp := driver.New(deps)
+			cliApp := cliadapter.New(deps)
 			err := cliApp.Run(ctx, tt.args)
 
 			// Assert Errors

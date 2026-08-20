@@ -12,7 +12,7 @@ import (
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driven"
-	clidriver "keep-it-up/internal/infrastructure/driver"
+	"keep-it-up/internal/infrastructure/driver/cliadapter"
 	"keep-it-up/internal/infrastructure/util"
 
 	_ "modernc.org/sqlite"
@@ -53,7 +53,7 @@ func run() int {
 
 	// --- Application side: use cases implementing the driver ports ----
 	auth := usecase.NewAuthentication(q)
-	deps := clidriver.Deps{
+	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
 		Players:  usecase.NewPlayerManagement(q, auth),
@@ -65,7 +65,7 @@ func run() int {
 	}
 
 	// --- Driver side: CLI adapter --------------------------------------
-	cli := clidriver.New(deps)
+	cli := cliadapter.New(deps)
 
 	if err := cli.Run(ctx, os.Args[1:]); err != nil {
 		fmt.Println(err)

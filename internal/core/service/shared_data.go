@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"keep-it-up/internal/constant"
 	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
 )
 

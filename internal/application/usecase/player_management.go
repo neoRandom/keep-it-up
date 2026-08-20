@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"keep-it-up/internal/core/interface/driver"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/util"
@@ -13,10 +13,10 @@ import (
 
 type PlayerManagement struct {
 	q    *database.Queries
-	auth driver.Authentication
+	auth port.Authentication
 }
 
-func NewPlayerManagement(q *database.Queries, auth driver.Authentication) *PlayerManagement {
+func NewPlayerManagement(q *database.Queries, auth port.Authentication) *PlayerManagement {
 	if auth == nil {
 		return nil
 	}

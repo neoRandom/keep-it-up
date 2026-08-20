@@ -5,17 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"keep-it-up/internal/constant"
-	"keep-it-up/internal/core/interface/driven"
+	"keep-it-up/internal/core/port"
+	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
 )
 
 type GameCommands struct {
 	q  *database.Queries
-	tp driven.TimeProvider
+	tp port.TimeProvider
 }
 
-func NewGameCommands(q *database.Queries, tp driven.TimeProvider) *GameCommands {
+func NewGameCommands(q *database.Queries, tp port.TimeProvider) *GameCommands {
 	return &GameCommands{
 		q: q, tp: tp,
 	}

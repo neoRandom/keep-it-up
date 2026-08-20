@@ -1,4 +1,4 @@
-package driver
+package cliadapter
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"strconv"
 
-	driverport "keep-it-up/internal/core/interface/driver"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 )
 
@@ -56,12 +56,12 @@ Nouns:
 // composition — this file makes the conservative choice since it assumes
 // nothing about how internal/application/usecase structures its types.
 type Deps struct {
-	Games    driverport.GameManagement
-	Access   driverport.AccessManagement
-	Players  driverport.PlayerManagement
-	Auth     driverport.Authentication
-	Data     driverport.DataFetching
-	Commands driverport.GameCommands
+	Games    port.GameManagement
+	Access   port.AccessManagement
+	Players  port.PlayerManagement
+	Auth     port.Authentication
+	Data     port.DataFetching
+	Commands port.GameCommands
 
 	Stdout io.Writer
 	Stderr io.Writer
