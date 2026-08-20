@@ -41,11 +41,14 @@ Nouns:
 ## HTTP API
 
 ```text
+no auth required:
 POST  /login        username + password → set cookies
+
+auth/cookies required:
 GET   /games        game access → list accessible games
 GET   /shared       game ID → current shared state
 GET   /interactions game ID → latest interactions
-POST  /save         game ID → add save interaction
+POST  /save         game ID + duration in seconds → add save interaction
 POST  /play         game ID → start or resume the game
 POST  /pause        game ID → pause the game
 ```
