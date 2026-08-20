@@ -31,7 +31,7 @@ func BuildSharedData(
 			)
 		}
 
-		occurredAt, err := time.Parse(constant.ISO8601Layout, ia.OccurredAt)
+		occurredAt, err := time.Parse(constant.DBDatetimeFormat, ia.OccurredAt)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"build shared data: interaction %d: parse occurred_at: %w",

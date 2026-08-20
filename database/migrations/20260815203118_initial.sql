@@ -36,7 +36,7 @@ CREATE TABLE interactions (
     saved_by INTEGER,   -- duration in seconds, not a timestamp; NULL unless action = 'saved'
 
     CONSTRAINT valid_occurred_at_iso
-    CHECK (occurred_at = strftime('%Y-%m-%d %H:%M:%S', occurred_at)),
+    CHECK (occurred_at = strftime('%Y-%m-%dT%H:%M:%S%z', occurred_at)),
 
     CONSTRAINT saved_by_matches_action
     CHECK ((action = 'saved') = (saved_by IS NOT NULL)),
@@ -92,10 +92,7 @@ END;
 
 DROP TRIGGER IF EXISTS trg_interactions_state_machine;
 
-DROP INDEX idx_players_username;
-DROP INDEX idx_interactions_game_occurred;
-
-DROP TABLE interactions;
-DROP TABLE access;
-DROP TABLE players;
-DROP TABLE games;
+DROP TABLE IF EXISTS interactions;
+DROP TABLE IF EXISTS access;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS games;
