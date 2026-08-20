@@ -11,6 +11,7 @@ import (
 
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/infrastructure/driven"
 	clidriver "keep-it-up/internal/infrastructure/driver"
 	"keep-it-up/internal/infrastructure/util"
 
@@ -58,7 +59,7 @@ func run() int {
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
 		Data:     usecase.NewDataFetching(q),
-		Commands: usecase.NewGameCommands(),
+		Commands: usecase.NewGameCommands(q, &driven.TimeProvider{}),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}
