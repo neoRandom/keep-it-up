@@ -6,20 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/constant"
+	"keep-it-up/internal/core/interface/driven"
 	"keep-it-up/internal/infrastructure/database"
-	"time"
 )
-
-type TimeProvider interface {
-	Time() (time.Time, error)
-}
 
 type GameCommands struct {
 	q  *database.Queries
-	tp TimeProvider
+	tp driven.TimeProvider
 }
 
-func NewGameCommands(q *database.Queries, tp TimeProvider) *GameCommands {
+func NewGameCommands(q *database.Queries, tp driven.TimeProvider) *GameCommands {
 	return &GameCommands{
 		q: q, tp: tp,
 	}

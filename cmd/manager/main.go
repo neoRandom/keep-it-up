@@ -28,13 +28,13 @@ func run() int {
 
 	// --- Driven side: infrastructure dependencies ---------------------
 	util.LoadEnv(".env")
-	
+
 	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
 	if err != nil {
 		fmt.Printf("failed to get dbstring absolute path: %v\n", err)
 		return 1
 	}
-	
+
 	sqlDB, err := sql.Open("sqlite", fmt.Sprintf(
 		"file:%s?mode=rw",
 		dbString,
@@ -59,7 +59,7 @@ func run() int {
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
 		Data:     usecase.NewDataFetching(q),
-		Commands: usecase.NewGameCommands(q, &driven.TimeProvider{}),
+		Commands: usecase.NewGameCommands(q, &driven.DefaultTimeProvider{}),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}

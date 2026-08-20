@@ -2,8 +2,8 @@ package driven
 
 import "time"
 
-type TimeProvider struct{}
+type DefaultTimeProvider struct{}
 
-func (tp TimeProvider) Time() (time.Time, error) {
+func (tp DefaultTimeProvider) Time() (time.Time, error) {
 	return time.Now(), nil
 }
