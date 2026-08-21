@@ -9,7 +9,7 @@ import (
 func TestPlayerManagement_AddPlayer(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Alice", "alice", "secret123")
 	if err != nil {
@@ -23,7 +23,7 @@ func TestPlayerManagement_AddPlayer(t *testing.T) {
 func TestPlayerManagement_UpdatePlayerName(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Alice", "alice", "secret123")
 	if err != nil {
@@ -46,7 +46,7 @@ func TestPlayerManagement_UpdatePlayerName(t *testing.T) {
 func TestPlayerManagement_UpdatePlayerPassword(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Alice", "alice", "secret123")
 	if err != nil {
@@ -69,7 +69,7 @@ func TestPlayerManagement_UpdatePlayerPassword(t *testing.T) {
 func TestPlayerManagement_RejectsInvalidPlayerInput(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	if _, err := uc.AddPlayer(ctx, "A", "alice", "secret123"); err == nil {
 		t.Fatal("AddPlayer() accepted short name")
@@ -99,7 +99,7 @@ func TestPlayerManagement_RejectsInvalidPlayerInput(t *testing.T) {
 func TestPlayerManagement_RejectsWhitespaceInNamesAndUsernames(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	if _, err := uc.AddPlayer(ctx, "Alice Smith", "alice", "secret123"); err != nil {
 		t.Fatal("AddPlayer() rejected a name containing whitespace")
@@ -112,7 +112,7 @@ func TestPlayerManagement_RejectsWhitespaceInNamesAndUsernames(t *testing.T) {
 func TestPlayerManagement_TrimPasswordWhitespaceBeforeStorage(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	for _, tc := range []struct {
 		name     string
@@ -136,7 +136,7 @@ func TestPlayerManagement_TrimPasswordWhitespaceBeforeStorage(t *testing.T) {
 			t.Fatalf("AddPlayer() stored the raw password with whitespace for %q", tc.password)
 		}
 
-		if ok, err := NewAuthentication(queries).CheckPlayerPassword(ctx, tc.username, strings.TrimSpace(tc.password)); err != nil || !ok {
+		if ok, err := NewAuthentication(queries, nil).CheckPlayerPassword(ctx, tc.username, strings.TrimSpace(tc.password)); err != nil || !ok {
 			t.Fatalf("CheckPlayerPassword() should accept username=%q with trimmed password=%q: ok=%v err=%v", tc.username, strings.TrimSpace(tc.password), ok, err)
 		}
 	}
@@ -166,7 +166,7 @@ func TestPlayerManagement_TrimPasswordWhitespaceBeforeStorage(t *testing.T) {
 func TestPlayerManagement_RejectsNilDependencies(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries)
+	auth := NewAuthentication(queries, nil)
 
 	if _, err := (&PlayerManagement{q: queries}).AddPlayer(ctx, "Alice", "alice", "secret123"); err == nil {
 		t.Fatal("AddPlayer() accepted nil auth dependency")
@@ -185,7 +185,7 @@ func TestPlayerManagement_RejectsNilDependencies(t *testing.T) {
 func TestPlayerManagement_RejectsInvalidIDs(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries)
+	auth := NewAuthentication(queries, nil)
 	uc := NewPlayerManagement(queries, auth)
 
 	for _, id := range []int64{0, -1} {
@@ -210,7 +210,7 @@ func TestPlayerManagement_RejectsInvalidIDs(t *testing.T) {
 func TestPlayerManagement_ForcePasswordUpdateBypassesPreviousPasswordCheck(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Carol", "carol", "secret123")
 	if err != nil {
@@ -233,7 +233,7 @@ func TestPlayerManagement_ForcePasswordUpdateBypassesPreviousPasswordCheck(t *te
 func TestPlayerManagement_RejectsWrongPreviousPassword(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Dana", "dana", "secret123")
 	if err != nil {
@@ -248,7 +248,7 @@ func TestPlayerManagement_RejectsWrongPreviousPassword(t *testing.T) {
 func TestPlayerManagement_DeletePlayer(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, err := uc.AddPlayer(ctx, "Bob", "bob", "secret123")
 	if err != nil {
@@ -274,7 +274,7 @@ func TestNewPlayerManagement_RejectsNilAuthDependency(t *testing.T) {
 
 func TestPlayerManagement_AddPlayerWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	// Create a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -289,7 +289,7 @@ func TestPlayerManagement_AddPlayerWithCancelledContext(t *testing.T) {
 func TestPlayerManagement_DuplicateUsername(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	// Add first player
 	if _, err := uc.AddPlayer(ctx, "Alice", "alice", "secret123"); err != nil {
@@ -305,8 +305,8 @@ func TestPlayerManagement_DuplicateUsername(t *testing.T) {
 func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
-	auth := NewAuthentication(queries)
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
+	auth := NewAuthentication(queries, nil)
 
 	// Create
 	player, err := uc.AddPlayer(ctx, "TestUser", "testuser", "password123")
@@ -358,7 +358,7 @@ func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 
 func TestPlayerManagement_UpdatePlayerNameWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, _ := uc.AddPlayer(context.Background(), "Alice", "alice", "secret123")
 
@@ -372,7 +372,7 @@ func TestPlayerManagement_UpdatePlayerNameWithCancelledContext(t *testing.T) {
 
 func TestPlayerManagement_UpdatePlayerPasswordWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, _ := uc.AddPlayer(context.Background(), "Bob", "bob", "secret123")
 
@@ -386,7 +386,7 @@ func TestPlayerManagement_UpdatePlayerPasswordWithCancelledContext(t *testing.T)
 
 func TestPlayerManagement_BaseUpdatePlayerPasswordWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, _ := uc.AddPlayer(context.Background(), "Carol", "carol", "secret123")
 
@@ -400,7 +400,7 @@ func TestPlayerManagement_BaseUpdatePlayerPasswordWithCancelledContext(t *testin
 
 func TestPlayerManagement_UpdatePlayerPasswordForceWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, _ := uc.AddPlayer(context.Background(), "Dana", "dana", "secret123")
 
@@ -414,7 +414,7 @@ func TestPlayerManagement_UpdatePlayerPasswordForceWithCancelledContext(t *testi
 
 func TestPlayerManagement_DeletePlayerWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	created, _ := uc.AddPlayer(context.Background(), "Eve", "eve", "secret123")
 
@@ -429,7 +429,7 @@ func TestPlayerManagement_DeletePlayerWithCancelledContext(t *testing.T) {
 func TestPlayerManagement_RejectsInvalidUsernameInput(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	// Test AddPlayer with invalid usernames
 	invalidUsernames := []string{
@@ -449,7 +449,7 @@ func TestPlayerManagement_RejectsInvalidUsernameInput(t *testing.T) {
 func TestPlayerManagement_PasswordBoundaryValidation(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	uc := NewPlayerManagement(queries, NewAuthentication(queries))
+	uc := NewPlayerManagement(queries, NewAuthentication(queries, nil))
 
 	// Test AddPlayer password validation at boundaries
 	testCases := []struct {
@@ -486,7 +486,7 @@ func TestPlayerManagement_RejectsNilAuthDependencyInAllMethods(t *testing.T) {
 		t.Fatal("AddPlayer() accepted nil auth")
 	}
 
-	player, _ := NewPlayerManagement(queries, NewAuthentication(queries)).AddPlayer(ctx, "Bob", "bob", "secret123")
+	player, _ := NewPlayerManagement(queries, NewAuthentication(queries, nil)).AddPlayer(ctx, "Bob", "bob", "secret123")
 
 	if err := uc.BaseUpdatePlayerPassword(ctx, player.ID, "newpass123"); err == nil {
 		t.Fatal("BaseUpdatePlayerPassword() accepted nil auth")
@@ -503,7 +503,7 @@ func TestPlayerManagement_RejectsNilAuthDependencyInAllMethods(t *testing.T) {
 
 func TestPlayerManagement_RejectsNilQueryDependencyInAllMethods(t *testing.T) {
 	ctx := context.Background()
-	auth := NewAuthentication(newTestDB(t))
+	auth := NewAuthentication(newTestDB(t), nil)
 
 	// Create a PlayerManagement with auth but without queries
 	uc := &PlayerManagement{q: nil, auth: auth}

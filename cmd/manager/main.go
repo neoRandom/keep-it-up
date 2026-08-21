@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"keep-it-up/internal/application/usecase"
+	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/infrastructure/driver/cliadapter"
@@ -27,7 +28,7 @@ func run() int {
 	defer stop()
 
 	// --- Driven side: infrastructure dependencies ---------------------
-	util.LoadEnv(".env")
+	util.LoadEnv(constant.EnvFilename)
 
 	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
 	if err != nil {
@@ -52,7 +53,7 @@ func run() int {
 	q := database.New(sqlDB)
 
 	// --- Application side: use cases implementing the driver ports ----
-	auth := usecase.NewAuthentication(q)
+	auth := usecase.NewAuthentication(q, nil)
 	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
