@@ -42,9 +42,6 @@ type Authentication interface {
 	LoginPlayer(
 		ctx context.Context, username string, password string,
 	) (model.AuthResult, error)
-	ValidateSession(
-		ctx context.Context, token string,
-	) (database.Player, error)
 }
 
 type DataFetching interface {

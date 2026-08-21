@@ -99,9 +99,3 @@ func (uc *Authentication) LoginPlayer(
 		Player: player,
 	}, nil
 }
-
-func (uc *Authentication) ValidateSession(
-	ctx context.Context, token string,
-) (database.Player, error) {
-	return database.Player{}, nil
-}
