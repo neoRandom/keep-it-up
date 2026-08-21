@@ -204,17 +204,17 @@ func TestGameManagement_RejectsInvalidGameNameFormats(t *testing.T) {
 		name  string
 		valid bool
 	}{
-		{"AB", false},        // too short
-		{"ABC", true},        // exactly 3 chars - minimum
-		{"ValidGame", true},  // valid
-		{"Game123", true},    // alphanumeric
+		{"AB", false},       // too short
+		{"ABC", true},       // exactly 3 chars - minimum
+		{"ValidGame", true}, // valid
+		{"Game123", true},   // alphanumeric
 		{"Game-Name", true}, // contains hyphen
 		{"Game Name", true}, // contains space
 		{"Game@123", true},  // contains special char
-		{"123", true},        // digits only, 3 chars
-		{"AB", false},        // 2 chars - below minimum
-		{"A", false},         // 1 char - too short
-		{"", false},          // empty
+		{"123", true},       // digits only, 3 chars
+		{"AB", false},       // 2 chars - below minimum
+		{"A", false},        // 1 char - too short
+		{"", false},         // empty
 	}
 
 	for _, tc := range testCases {

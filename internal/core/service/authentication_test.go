@@ -1,6 +1,7 @@
-package service
+package service_test
 
 import (
+	"keep-it-up/internal/core/service"
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
@@ -8,8 +9,8 @@ import (
 
 func TestAuthentication_IsPasswordValid(t *testing.T) {
 	for _, password := range []string{"secret123", "abc123"} {
-		if err := IsPasswordValid(password); err != nil {
-			t.Fatalf("IsPasswordValid() rejected a valid password %q: %v", password, err)
+		if err := service.IsPasswordValid(password); err != nil {
+			t.Fatalf("service.IsPasswordValid() rejected a valid password %q: %v", password, err)
 		}
 	}
 
@@ -18,33 +19,33 @@ func TestAuthentication_IsPasswordValid(t *testing.T) {
 		"alice", " alice ", " secret123 ", "secret123 ", " secret123",
 		"\tsecret 123\n",
 	} {
-		if err := IsPasswordValid(password); err == nil {
-			t.Fatalf("IsPasswordValid() accepted an invalid password %q", password)
+		if err := service.IsPasswordValid(password); err == nil {
+			t.Fatalf("service.IsPasswordValid() accepted an invalid password %q", password)
 		}
 	}
 }
 
 func TestAuthentication_IsPasswordValidBoundary(t *testing.T) {
-	if err := IsPasswordValid("abc123"); err != nil {
-		t.Fatalf("IsPasswordValid() rejected valid 6-character password: %v", err)
+	if err := service.IsPasswordValid("abc123"); err != nil {
+		t.Fatalf("service.IsPasswordValid() rejected valid 6-character password: %v", err)
 	}
 
 	// Test one below boundary: 5 characters (should fail)
-	if err := IsPasswordValid("abc12"); err == nil {
-		t.Fatal("IsPasswordValid() accepted 5-character password (below minimum)")
+	if err := service.IsPasswordValid("abc12"); err == nil {
+		t.Fatal("service.IsPasswordValid() accepted 5-character password (below minimum)")
 	}
 
 	// Test with whitespace at boundary
-	if err := IsPasswordValid(" abc123"); err == nil {
-		t.Fatalf("IsPasswordValid() accepted invalid 6-char password with leading space: %v", err)
+	if err := service.IsPasswordValid(" abc123"); err == nil {
+		t.Fatalf("service.IsPasswordValid() accepted invalid 6-char password with leading space: %v", err)
 	}
-	if err := IsPasswordValid("abc123 "); err == nil {
-		t.Fatalf("IsPasswordValid() accepted invalid 6-char password with trailing space: %v", err)
+	if err := service.IsPasswordValid("abc123 "); err == nil {
+		t.Fatalf("service.IsPasswordValid() accepted invalid 6-char password with trailing space: %v", err)
 	}
 }
 
 func TestAuthentication_GeneratePasswordHash(t *testing.T) {
-	hash, err := GeneratePasswordHash("secret123")
+	hash, err := service.GeneratePasswordHash("secret123")
 	if err != nil {
 		t.Fatalf("GeneratePasswordHash() returned error: %v", err)
 	}
@@ -61,7 +62,7 @@ func TestAuthentication_GeneratePasswordHash(t *testing.T) {
 }
 
 func TestAuthentication_GeneratePasswordHashRejectsShortPassword(t *testing.T) {
-	if _, err := GeneratePasswordHash("short"); err == nil {
+	if _, err := service.GeneratePasswordHash("short"); err == nil {
 		t.Fatal("GeneratePasswordHash() accepted a password shorter than 6 characters")
 	}
 }
@@ -81,12 +82,12 @@ func TestAuthentication_IsPasswordValidBoundaryPrecision(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := IsPasswordValid(tc.password)
+		err := service.IsPasswordValid(tc.password)
 		if tc.shouldValidate && err != nil {
-			t.Fatalf("IsPasswordValid() should validate %q (length=%d): %v", tc.password, len(tc.password), err)
+			t.Fatalf("service.IsPasswordValid() should validate %q (length=%d): %v", tc.password, len(tc.password), err)
 		}
 		if !tc.shouldValidate && err == nil {
-			t.Fatalf("IsPasswordValid() should reject %q (length=%d)", tc.password, len(tc.password))
+			t.Fatalf("service.IsPasswordValid() should reject %q (length=%d)", tc.password, len(tc.password))
 		}
 	}
 }
@@ -101,7 +102,7 @@ func TestAuthentication_GeneratePasswordHashWithValidPasswords(t *testing.T) {
 	}
 
 	for _, password := range validPasswords {
-		hash, err := GeneratePasswordHash(password)
+		hash, err := service.GeneratePasswordHash(password)
 		if err != nil {
 			t.Fatalf("GeneratePasswordHash() failed for valid password %q: %v", password, err)
 		}
@@ -128,14 +129,14 @@ func TestAuthentication_IsPasswordValidWithUnicodeCharacters(t *testing.T) {
 
 	for _, tc := range testCases {
 		// Just verify the function doesn't panic or error unexpectedly
-		_ = IsPasswordValid(tc.password)
+		_ = service.IsPasswordValid(tc.password)
 	}
 }
 
 func TestAuthentication_GeneratePasswordHashIsConsistent(t *testing.T) {
 	password := "secret123"
-	hash1, err1 := GeneratePasswordHash(password)
-	hash2, err2 := GeneratePasswordHash(password)
+	hash1, err1 := service.GeneratePasswordHash(password)
+	hash2, err2 := service.GeneratePasswordHash(password)
 
 	if err1 != nil || err2 != nil {
 		t.Fatalf("GeneratePasswordHash() returned error: err1=%v, err2=%v", err1, err2)

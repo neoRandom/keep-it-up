@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"keep-it-up/internal/core/interface/driver"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/util"
@@ -13,10 +13,10 @@ import (
 
 type PlayerManagement struct {
 	q    *database.Queries
-	auth driver.Authentication
+	auth port.Authentication
 }
 
-func NewPlayerManagement(q *database.Queries, auth driver.Authentication) *PlayerManagement {
+func NewPlayerManagement(q *database.Queries, auth port.Authentication) *PlayerManagement {
 	if auth == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	}
 
 	password = strings.TrimSpace(password)
-	
+
 	if password == username {
 		return database.Player{}, errors.New("player password cannot be equal to its username")
 	}
@@ -154,7 +154,7 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 	if err := service.IsPasswordValid(newPassword); err != nil {
 		return err
 	}
-	
+
 	if newPassword == player.Username {
 		return errors.New("new player password cannot be equal to its username")
 	}

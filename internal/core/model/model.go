@@ -15,6 +15,7 @@ const (
 
 type SharedData struct {
 	GameID       int64
+	Valid        *bool
 	Status       SharedDataStatus
 	DeadlineAt   *time.Time
 	LastSavedAt  *time.Time
@@ -22,6 +23,6 @@ type SharedData struct {
 }
 
 type AuthResult struct {
-    Token  string
-    Player database.Player
+	Token  string
+	Player database.Player
 }

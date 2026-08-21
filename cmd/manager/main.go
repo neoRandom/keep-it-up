@@ -10,9 +10,10 @@ import (
 	"syscall"
 
 	"keep-it-up/internal/application/usecase"
+	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driven"
-	clidriver "keep-it-up/internal/infrastructure/driver"
+	"keep-it-up/internal/infrastructure/driver/cliadapter"
 	"keep-it-up/internal/infrastructure/util"
 
 	_ "modernc.org/sqlite"
@@ -27,7 +28,7 @@ func run() int {
 	defer stop()
 
 	// --- Driven side: infrastructure dependencies ---------------------
-	util.LoadEnv(".env")
+	util.LoadEnv(constant.EnvFilename)
 
 	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
 	if err != nil {
@@ -52,20 +53,20 @@ func run() int {
 	q := database.New(sqlDB)
 
 	// --- Application side: use cases implementing the driver ports ----
-	auth := usecase.NewAuthentication(q)
-	deps := clidriver.Deps{
+	auth := usecase.NewAuthentication(q, nil)
+	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
-		Data:     usecase.NewDataFetching(q),
+		Fetch:    usecase.NewDataFetching(q),
 		Commands: usecase.NewGameCommands(q, &driven.DefaultTimeProvider{}),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}
 
 	// --- Driver side: CLI adapter --------------------------------------
-	cli := clidriver.New(deps)
+	cli := cliadapter.New(deps)
 
 	if err := cli.Run(ctx, os.Args[1:]); err != nil {
 		fmt.Println(err)

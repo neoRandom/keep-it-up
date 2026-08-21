@@ -1,4 +1,4 @@
-package driver_test
+package cliadapter_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"keep-it-up/internal/infrastructure/database"
-	"keep-it-up/internal/infrastructure/driver"
+	"keep-it-up/internal/infrastructure/driver/cliadapter"
 )
 
 // --- Mocks ---
@@ -54,70 +54,70 @@ func TestCLI_Run(t *testing.T) {
 	tests := []struct {
 		name           string
 		args           []string
-		setupMocks     func(d *driver.Deps)
+		setupMocks     func(d *cliadapter.Deps)
 		expectedErr    error
 		expectedStdout string
 		expectedStderr string
 	}{
 		// Basic CLI checks
 		{
-			name:        "no arguments returns ErrNoCommand",
-			args:        []string{},
-			expectedErr: driver.ErrNoCommand,
-			expectedStderr: "Usage:", 
+			name:           "no arguments returns ErrNoCommand",
+			args:           []string{},
+			expectedErr:    cliadapter.ErrNoCommand,
+			expectedStderr: "Usage:",
 		},
 		{
-			name:        "help flag returns usage on stdout",
-			args:        []string{"--help"},
-			expectedErr: nil,
+			name:           "help flag returns usage on stdout",
+			args:           []string{"--help"},
+			expectedErr:    nil,
 			expectedStdout: "Usage:",
 		},
 		{
-			name:        "unknown noun returns ErrUnknownCommand",
-			args:        []string{"unknown-noun"},
-			expectedErr: driver.ErrUnknownCommand,
+			name:           "unknown noun returns ErrUnknownCommand",
+			args:           []string{"unknown-noun"},
+			expectedErr:    cliadapter.ErrUnknownCommand,
 			expectedStderr: "Usage:",
 		},
 
 		// Game subcommand tests
 		{
-			name: "game without verb returns ErrNoSubcommand",
-			args: []string{"game"},
-			expectedErr: driver.ErrNoSubcommand,
+			name:        "game without verb returns ErrNoSubcommand",
+			args:        []string{"game"},
+			expectedErr: cliadapter.ErrNoSubcommand,
 		},
 		{
 			name: "game add success",
 			args: []string{"game", "add", "MyGame"},
-			setupMocks: func(d *driver.Deps) {
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Games = &mockGames{
 					AddGameFunc: func(ctx context.Context, name string) (database.Game, error) {
 						if name != "MyGame" {
 							t.Errorf("expected MyGame, got %s", name)
 						}
-						return database.Game{ID: 42, Name: "MyGame"}, nil 
+						return database.Game{ID: 42, Name: "MyGame"}, nil
 					},
 				}
 			},
 			expectedErr:    nil,
-			expectedStdout: "{ID:42 Name:MyGame", 
+			expectedStdout: "{ID:42 Name:MyGame",
 		},
 		{
-			name: "game add fails wrong arg count",
-			args: []string{"game", "add", "Too", "Many"},
-			expectedErr: driver.ErrWrongArgCount,
+			name:        "game add fails wrong arg count",
+			args:        []string{"game", "add", "Too", "Many"},
+			expectedErr: cliadapter.ErrWrongArgCount,
 		},
 		{
 			name: "game update invalid id",
 			args: []string{"game", "update", "not-an-id", "NewName"},
 			// Will be wrapped in parseID error, so we just check if it returns an error
-			expectedErr: errors.New("invalid id"), 
+			expectedErr: errors.New("invalid id"),
 		},
 
-		// Session subcommand tests
+		// Command subcommand tests
 		{
-			name: "session save success",
-			args: []string{"session", "save", "10", "20", "300"},
-			setupMocks: func(d *driver.Deps) {
+			name: "command save success",
+			args: []string{"command", "save", "10", "20", "300"},
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Commands = &mockCommands{
 					SaveGameFunc: func(ctx context.Context, gameID, playerID int64, duration int64) error {
 						if gameID != 10 || playerID != 20 {
@@ -134,14 +134,14 @@ func TestCLI_Run(t *testing.T) {
 			expectedStdout: "game 10 saved by player 20 for 300 min\n",
 		},
 		{
-			name: "session save with invalid timestamp",
-			args: []string{"session", "save", "10", "20", "bad-time"},
+			name:        "command save with invalid timestamp",
+			args:        []string{"command", "save", "10", "20", "bad-time"},
 			expectedErr: errors.New("invalid timestamp"),
 		},
 		{
-			name: "session resume business error",
-			args: []string{"session", "resume", "1", "2"},
-			setupMocks: func(d *driver.Deps) {
+			name: "command resume business error",
+			args: []string{"command", "resume", "1", "2"},
+			setupMocks: func(d *cliadapter.Deps) {
 				d.Commands = &mockCommands{
 					ResumeGameFunc: func(ctx context.Context, gameID, playerID int64) error {
 						return dummyErr
@@ -157,7 +157,7 @@ func TestCLI_Run(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
 			// Construct dependencies
-			deps := driver.Deps{
+			deps := cliadapter.Deps{
 				Stdout: &stdout,
 				Stderr: &stderr,
 			}
@@ -167,7 +167,7 @@ func TestCLI_Run(t *testing.T) {
 				tt.setupMocks(&deps)
 			}
 
-			cliApp := driver.New(deps)
+			cliApp := cliadapter.New(deps)
 			err := cliApp.Run(ctx, tt.args)
 
 			// Assert Errors

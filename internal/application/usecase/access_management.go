@@ -29,11 +29,11 @@ func (uc *AccessManagement) GrantPlayerAccess(
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
-	
+
 	_, err := uc.q.GrantPlayerAccess(
 		ctx,
 		database.GrantPlayerAccessParams{
-			GameID: gameId,
+			GameID:   gameId,
 			PlayerID: playerId,
 		},
 	)
@@ -55,11 +55,11 @@ func (uc *AccessManagement) RevokePlayerAccess(
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
-	
+
 	return uc.q.RevokePlayerAccess(
 		ctx,
 		database.RevokePlayerAccessParams{
-			GameID: gameId,
+			GameID:   gameId,
 			PlayerID: playerId,
 		},
 	)

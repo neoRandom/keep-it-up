@@ -1,4 +1,4 @@
-package driver
+package port
 
 import (
 	"context"
@@ -42,6 +42,9 @@ type Authentication interface {
 	LoginPlayer(
 		ctx context.Context, username string, password string,
 	) (model.AuthResult, error)
+	ValidateSession(
+		ctx context.Context, token string,
+	) (database.Player, error)
 }
 
 type DataFetching interface {
@@ -54,6 +57,9 @@ type DataFetching interface {
 	ListInteractions(
 		ctx context.Context, gameId int64, limit int64,
 	) ([]database.Interaction, error)
+	// TODO: List Player Interactions
+	// TODO: First Interaction
+	// TODO: Last Interaction
 }
 
 type GameCommands interface {
