@@ -21,6 +21,9 @@ var (
 
 const usage = `keep-it-up --- system management CLI
 
+Usage:
+  keepitup <noun> <verb> [args...]
+
 Nouns:
   game     add    <name>
            update <id> <name>
