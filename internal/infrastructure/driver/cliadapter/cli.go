@@ -21,29 +21,27 @@ var (
 
 const usage = `keep-it-up --- system management CLI
 
-Usage:
-  keepitup <noun> <verb> [args...]
-
 Nouns:
-  game     add <name>
+  game     add    <name>
            update <id> <name>
            delete <id>
-  access   grant <game id> <player id>
+  access   grant  <game id> <player id>
            revoke <game id> <player id>
-  player   add <name> <username> <password>
-           rename <id> <name>
-           passwd <id> <current password> <new password>
+           check  <game id> <player id>
+  player   add          <name> <username> <password>
+           rename       <id> <name>
+           passwd       <id> <current password> <new password>
            passwd-force <id> <password>
-           delete <id>
+           delete       <id>
   auth     validate-passwd <password>
-           hash-passwd <password>
-           check-passwd <username> <password>
-  fetch    games <player id>
-           shared <game id>
+           hash-passwd     <password>
+           check-passwd    <username> <password>
+  fetch    games        <player id>
+           shared       <game id>
            interactions <game id> <limit>
-  command  save <game id> <player id> <duration in seconds>
+  command  save   <game id> <player id> <duration in seconds>
            resume <game id> <player id>
-           pause <game id> <player id>
+           pause  <game id> <player id>
 `
 
 // Deps groups the driver ports and I/O streams the CLI needs. It is a
@@ -213,6 +211,30 @@ func (c *CLI) runAccess(ctx context.Context, args []string) error {
 			return fmt.Errorf("access revoke: %w", err)
 		}
 		fmt.Fprintf(c.d.Stdout, "player %d access to game %d revoked\n", playerID, gameID)
+		return nil
+
+	case "check":
+		if len(rest) != 2 {
+			return wrongArgs("access check", "access check <game id> <player id>")
+		}
+		gameID, err := parseID(rest[0])
+		if err != nil {
+			return fmt.Errorf("access check: %w", err)
+		}
+		playerID, err := parseID(rest[1])
+		if err != nil {
+			return fmt.Errorf("access check: %w", err)
+		}
+
+		access, err := c.d.Access.CheckPlayerAccess(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("access check: %w", err)
+		}
+		fmt.Fprintf(
+			c.d.Stdout, 
+			"player %d access to game %d: %v\n", 
+			playerID, gameID, access,
+		)
 		return nil
 
 	default:

@@ -13,19 +13,20 @@ type GameManagement interface {
 }
 
 type AccessManagement interface {
-	GrantPlayerAccess(ctx context.Context, gameId int64, playerId int64) error
-	RevokePlayerAccess(ctx context.Context, gameId int64, playerId int64) error
+	GrantPlayerAccess(ctx context.Context, gameId, playerId int64) error
+	RevokePlayerAccess(ctx context.Context, gameId, playerId int64) error
+	CheckPlayerAccess(ctx context.Context, gameId, playerId int64) (bool, error)
 }
 
 type PlayerManagement interface {
 	AddPlayer(
-		ctx context.Context, name string, username string, password string,
+		ctx context.Context, name, username, password string,
 	) (database.Player, error)
 	UpdatePlayerName(
 		ctx context.Context, id int64, name string,
 	) error
 	UpdatePlayerPassword(
-		ctx context.Context, id int64, currentPassword string, newPassword string,
+		ctx context.Context, id int64, currentPassword, newPassword string,
 	) error
 	UpdatePlayerPasswordForce(
 		ctx context.Context, id int64, password string,
@@ -37,14 +38,11 @@ type PlayerManagement interface {
 
 type Authentication interface {
 	CheckPlayerPassword(
-		ctx context.Context, username string, password string,
+		ctx context.Context, username, password string,
 	) (bool, error)
 	LoginPlayer(
-		ctx context.Context, username string, password string,
+		ctx context.Context, username, password string,
 	) (model.AuthResult, error)
-	ValidateSession(
-		ctx context.Context, token string,
-	) (database.Player, error)
 }
 
 type DataFetching interface {
@@ -55,7 +53,7 @@ type DataFetching interface {
 		ctx context.Context, gameId int64,
 	) (*model.SharedData, error)
 	ListInteractions(
-		ctx context.Context, gameId int64, limit int64,
+		ctx context.Context, gameId, limit int64,
 	) ([]database.Interaction, error)
 	// TODO: List Player Interactions
 	// TODO: First Interaction
@@ -63,9 +61,7 @@ type DataFetching interface {
 }
 
 type GameCommands interface {
-	SaveGame(
-		ctx context.Context, gameId int64, playerId int64, duration int64,
-	) error
-	ResumeGame(ctx context.Context, gameId int64, playerId int64) error
-	PauseGame(ctx context.Context, gameId int64, playerId int64) error
+	SaveGame(ctx context.Context, gameId, playerId, duration int64) error
+	ResumeGame(ctx context.Context, gameId, playerId int64) error
+	PauseGame(ctx context.Context, gameId, playerId int64) error
 }

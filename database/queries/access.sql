@@ -6,3 +6,9 @@ RETURNING game_id, player_id;
 -- name: RevokePlayerAccess :exec
 DELETE FROM access
 WHERE game_id = ? AND player_id = ?;
+
+-- name: CheckPlayerAccess :one
+SELECT EXISTS (
+    SELECT 1 FROM access
+    WHERE game_id = ? AND player_id = ?
+);
