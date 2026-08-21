@@ -17,25 +17,26 @@ Usage:
   keepitup <noun> <verb> [args...]
 
 Nouns:
-  game     add <name>
+  game     add    <name>
            update <id> <name>
            delete <id>
-  access   grant <game id> <player id>
+  access   grant  <game id> <player id>
            revoke <game id> <player id>
-  player   add <name> <username> <password>
-           rename <id> <name>
-           passwd <id> <current password> <new password>
+           check  <game id> <player id>
+  player   add          <name> <username> <password>
+           rename       <id> <name>
+           passwd       <id> <current password> <new password>
            passwd-force <id> <password>
-           delete <id>
+           delete       <id>
   auth     validate-passwd <password>
-           hash-passwd <password>
-           check-passwd <username> <password>
-  fetch    games <player id>
-           shared <game id>
+           hash-passwd     <password>
+           check-passwd    <username> <password>
+  fetch    games        <player id>
+           shared       <game id>
            interactions <game id> <limit>
-  command  save <game id> <player id> <duration in seconds>
+  command  save   <game id> <player id> <duration in seconds>
            resume <game id> <player id>
-           pause <game id> <player id>
+           pause  <game id> <player id>
 ```
 
 ## HTTP API

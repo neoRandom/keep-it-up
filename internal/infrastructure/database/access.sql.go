@@ -9,6 +9,25 @@ import (
 	"context"
 )
 
+const checkPlayerAccess = `-- name: CheckPlayerAccess :one
+SELECT EXISTS (
+    SELECT 1 FROM access
+    WHERE game_id = ? AND player_id = ?
+)
+`
+
+type CheckPlayerAccessParams struct {
+	GameID   int64
+	PlayerID int64
+}
+
+func (q *Queries) CheckPlayerAccess(ctx context.Context, arg CheckPlayerAccessParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkPlayerAccess, arg.GameID, arg.PlayerID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const grantPlayerAccess = `-- name: GrantPlayerAccess :one
 INSERT INTO access (game_id, player_id)
 VALUES (?, ?)

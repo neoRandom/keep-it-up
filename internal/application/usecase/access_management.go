@@ -64,3 +64,27 @@ func (uc *AccessManagement) RevokePlayerAccess(
 		},
 	)
 }
+
+func (uc *AccessManagement) CheckPlayerAccess(
+	ctx context.Context, gameId, playerId int64,
+) (bool, error) {
+	if uc.q == nil {
+		return false, errors.New("database queries are not initialized")
+	}
+
+	if gameId < 1 {
+		return false, fmt.Errorf("invalid game ID: %d", gameId)
+	}
+
+	if playerId < 1 {
+		return false, fmt.Errorf("invalid player ID: %d", playerId)
+	}
+	
+	return uc.q.CheckPlayerAccess(
+		ctx,
+		database.CheckPlayerAccessParams{
+			GameID: gameId,
+			PlayerID: playerId,
+		},
+	)
+}
