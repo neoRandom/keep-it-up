@@ -55,8 +55,11 @@ func (uc *GameCommands) SaveGame(
 		OccurredAt: t.Format(constant.DBDatetimeFormat),
 		SavedBy:    sql.NullInt64{Int64: duration, Valid: true},
 	})
+	if err != nil {
+		return fmt.Errorf("failed to save game %d: %w", gameId, err)
+	}
 
-	return err
+	return nil
 }
 
 func (uc *GameCommands) ResumeGame(
@@ -88,8 +91,11 @@ func (uc *GameCommands) ResumeGame(
 		PlayerID:   sql.NullInt64{Int64: playerId, Valid: true},
 		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
+	if err != nil {
+		return fmt.Errorf("failed to resume game %d: %w", gameId, err)
+	}
 
-	return err
+	return nil
 }
 
 func (uc *GameCommands) PauseGame(
@@ -121,6 +127,9 @@ func (uc *GameCommands) PauseGame(
 		PlayerID:   sql.NullInt64{Int64: playerId, Valid: true},
 		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
+	if err != nil {
+		return fmt.Errorf("failed to pause game %d: %w", gameId, err)
+	}
 
-	return err
+	return nil
 }

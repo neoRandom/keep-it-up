@@ -28,7 +28,11 @@ func (uc *DataFetching) ListPlayerGames(
 		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
-	return uc.q.ListPlayerGames(ctx, playerId)
+	games, err := uc.q.ListPlayerGames(ctx, playerId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list games for player %d: %w", playerId, err)
+	}
+	return games, nil
 }
 
 func (uc *DataFetching) GetSharedData(
@@ -67,11 +71,15 @@ func (uc *DataFetching) ListInteractions(
 		return nil, errors.New("query limit cannot be less than 0")
 	}
 
-	return uc.q.ListRecentInteractions(
+	interactions, err := uc.q.ListRecentInteractions(
 		ctx,
 		database.ListRecentInteractionsParams{
 			GameID: gameId,
 			Limit:  limit,
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interactions for game %d: %w", gameId, err)
+	}
+	return interactions, nil
 }

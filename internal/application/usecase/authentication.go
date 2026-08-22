@@ -48,7 +48,7 @@ func (uc *Authentication) CheckPlayerPassword(
 
 	player, err := uc.q.GetPlayerByUsername(ctx, username)
 	if err != nil {
-		return database.Player{}, err
+		return database.Player{}, fmt.Errorf("failed to get player by username %q: %w", username, err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
@@ -57,7 +57,7 @@ func (uc *Authentication) CheckPlayerPassword(
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return database.Player{}, nil
 		}
-		return database.Player{}, err
+		return database.Player{}, fmt.Errorf("failed to compare password hash: %w", err)
 	}
 
 	return player, nil

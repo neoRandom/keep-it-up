@@ -29,7 +29,11 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 		)
 	}
 
-	return uc.q.CreateGame(ctx, name)
+	game, err := uc.q.CreateGame(ctx, name)
+	if err != nil {
+		return database.Game{}, fmt.Errorf("failed to create game %q: %w", name, err)
+	}
+	return game, nil
 }
 
 func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string) error {
@@ -50,10 +54,13 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 		)
 	}
 
-	return uc.q.UpdateGame(ctx, database.UpdateGameParams{
+	if err := uc.q.UpdateGame(ctx, database.UpdateGameParams{
 		ID:   id,
 		Name: name,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to update game %d: %w", id, err)
+	}
+	return nil
 }
 
 func (uc *GameManagement) DeleteGame(ctx context.Context, id int64) error {
@@ -65,5 +72,8 @@ func (uc *GameManagement) DeleteGame(ctx context.Context, id int64) error {
 		return fmt.Errorf("Invalid game ID: %d", id)
 	}
 
-	return uc.q.DeleteGame(ctx, id)
+	if err := uc.q.DeleteGame(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete game %d: %w", id, err)
+	}
+	return nil
 }

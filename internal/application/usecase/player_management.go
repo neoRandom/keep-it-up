@@ -68,14 +68,18 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return database.Player{}, err
+		return database.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
-	return uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
+	player, err := uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
 		Name:           name,
 		Username:       username,
 		HashedPassword: hashedPassword,
 	})
+	if err != nil {
+		return database.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
+	}
+	return player, nil
 }
 
 func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name string) error {
@@ -93,10 +97,13 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 		return fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
 	}
 
-	return uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
+	if err := uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
 		ID:   id,
 		Name: name,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to update player name for id %d: %w", id, err)
+	}
+	return nil
 }
 
 func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int64, password string) error {
@@ -119,13 +126,16 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
-	return uc.q.UpdatePlayerPassword(ctx, database.UpdatePlayerPasswordParams{
+	if err := uc.q.UpdatePlayerPassword(ctx, database.UpdatePlayerPasswordParams{
 		ID:             id,
 		HashedPassword: hashedPassword,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to update password for player %d: %w", id, err)
+	}
+	return nil
 }
 
 func (uc *PlayerManagement) UpdatePlayerPassword(
@@ -205,5 +215,8 @@ func (uc *PlayerManagement) DeletePlayer(ctx context.Context, id int64) error {
 		return fmt.Errorf("Invalid player ID: %d", id)
 	}
 
-	return uc.q.DeletePlayer(ctx, id)
+	if err := uc.q.DeletePlayer(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete player %d: %w", id, err)
+	}
+	return nil
 }

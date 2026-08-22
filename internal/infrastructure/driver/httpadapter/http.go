@@ -226,24 +226,25 @@ func (h *HTTPAdapter) playerIDFromContext(c *echo.Context) (int64, bool) {
 // A player without access receives 404 (indistinguishable from "not found", per
 // the spec's `GameNotFound` "or inaccessible" semantics). Any internal error
 // becomes a 500; an unauthenticated request becomes a 401.
-func (h *HTTPAdapter) requireAccess(c *echo.Context, gameID int64) bool {
+//
+// It returns (denied, writeErr): denied is true when a 4xx/5xx response has been
+// written and the handler must stop; writeErr is non-nil only if writing that
+// response itself failed, which handlers propagate upward.
+func (h *HTTPAdapter) requireAccess(c *echo.Context, gameID int64) (denied bool, writeErr error) {
 	playerID, ok := h.playerIDFromContext(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, map[string]string{"message": "Authentication required"})
-		return false
+		return true, c.JSON(http.StatusUnauthorized, map[string]string{"message": "Authentication required"})
 	}
 
 	granted, err := h.d.Access.CheckPlayerAccess(c.Request().Context(), gameID, playerID)
 	if err != nil {
-		log.Printf("access check error: %v", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"message": "Something went wrong!"})
-		return false
+		log.Printf("access check error for game %d: %v", gameID, err)
+		return true, c.JSON(http.StatusInternalServerError, map[string]string{"message": "Something went wrong!"})
 	}
 	if !granted {
-		c.JSON(http.StatusNotFound, map[string]string{"message": "Game not found or inaccessible"})
-		return false
+		return true, c.JSON(http.StatusNotFound, map[string]string{"message": "Game not found or inaccessible"})
 	}
-	return true
+	return false, nil
 }
 
 // nullableInt64 converts a database.NullInt64 into a *int64 (nil when invalid)
@@ -280,7 +281,11 @@ func (h *HTTPAdapter) handleGetShared(ctx *echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
-	if !h.requireAccess(ctx, gameID) {
+	denied, err := h.requireAccess(ctx, gameID)
+	if err != nil {
+		return err
+	}
+	if denied {
 		return nil
 	}
 
@@ -320,7 +325,11 @@ func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
-	if !h.requireAccess(ctx, gameID) {
+	denied, err := h.requireAccess(ctx, gameID)
+	if err != nil {
+		return err
+	}
+	if denied {
 		return nil
 	}
 
@@ -353,7 +362,11 @@ func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
-	if !h.requireAccess(ctx, gameID) {
+	denied, err := h.requireAccess(ctx, gameID)
+	if err != nil {
+		return err
+	}
+	if denied {
 		return nil
 	}
 
@@ -378,7 +391,11 @@ func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
-	if !h.requireAccess(ctx, gameID) {
+	denied, err := h.requireAccess(ctx, gameID)
+	if err != nil {
+		return err
+	}
+	if denied {
 		return nil
 	}
 
@@ -413,7 +430,11 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 		limit = parsed
 	}
 
-	if !h.requireAccess(ctx, gameID) {
+	denied, err := h.requireAccess(ctx, gameID)
+	if err != nil {
+		return err
+	}
+	if denied {
 		return nil
 	}
 
