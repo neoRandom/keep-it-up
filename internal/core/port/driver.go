@@ -26,10 +26,10 @@ type PlayerManagement interface {
 		ctx context.Context, id int64, name string,
 	) error
 	UpdatePlayerPassword(
-		ctx context.Context, id int64, currentPassword, newPassword string,
+		ctx context.Context, username, currentPassword, newPassword string,
 	) error
 	UpdatePlayerPasswordForce(
-		ctx context.Context, id int64, password string,
+		ctx context.Context, username, password string,
 	) error
 	DeletePlayer(
 		ctx context.Context, id int64,
@@ -39,7 +39,7 @@ type PlayerManagement interface {
 type Authentication interface {
 	CheckPlayerPassword(
 		ctx context.Context, username, password string,
-	) (bool, error)
+	) (database.Player, error)
 	LoginPlayer(
 		ctx context.Context, username, password string,
 	) (model.AuthResult, error)

@@ -58,11 +58,11 @@ func TestAuthentication_CheckPlayerPassword(t *testing.T) {
 		t.Fatalf("CreatePlayer() returned error: %v", err)
 	}
 
-	ok, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
+	player, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
 	if err != nil {
 		t.Fatalf("CheckPlayerPassword() returned error: %v", err)
 	}
-	if !ok {
+	if player.ID == 0 {
 		t.Fatal("CheckPlayerPassword() returned false for the correct password")
 	}
 }
@@ -86,11 +86,11 @@ func TestAuthentication_CheckPlayerPasswordRejectsWrongPassword(t *testing.T) {
 		t.Fatalf("CreatePlayer() returned error: %v", err)
 	}
 
-	ok, err := auth.CheckPlayerPassword(ctx, "alice", "wrongpass")
+	player, err := auth.CheckPlayerPassword(ctx, "alice", "wrongpass")
 	if err != nil {
 		t.Fatalf("CheckPlayerPassword() returned error for an incorrect password: %v", err)
 	}
-	if ok {
+	if player.ID != 0 {
 		t.Fatal("CheckPlayerPassword() returned true for the wrong password")
 	}
 }
@@ -99,11 +99,11 @@ func TestAuthentication_CheckPlayerPasswordRejectsUnknownUser(t *testing.T) {
 	ctx := context.Background()
 	auth := NewAuthentication(newTestDB(t), nil)
 
-	ok, err := auth.CheckPlayerPassword(ctx, "ghost", "secret123")
+	player, err := auth.CheckPlayerPassword(ctx, "ghost", "secret123")
 	if err == nil {
 		t.Fatal("CheckPlayerPassword() did not return an error for an unknown username")
 	}
-	if ok {
+	if player.ID != 0 {
 		t.Fatal("CheckPlayerPassword() returned true for an unknown username")
 	}
 }
@@ -145,11 +145,11 @@ func TestAuthentication_CheckPlayerPasswordRejectsMalformedHash(t *testing.T) {
 		t.Fatalf("CreatePlayer() returned error: %v", err)
 	}
 
-	ok, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
+	player, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
 	if err == nil {
 		t.Fatal("CheckPlayerPassword() did not return an error for a malformed stored hash")
 	}
-	if ok {
+	if player.ID != 0 {
 		t.Fatal("CheckPlayerPassword() returned true for a malformed stored hash")
 	}
 }
@@ -184,11 +184,11 @@ func TestAuthentication_CheckPlayerPasswordWithTrimmablePassword(t *testing.T) {
 	}
 
 	// Test that exact password match works
-	ok, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
+	player, err := auth.CheckPlayerPassword(ctx, "alice", "secret123")
 	if err != nil {
 		t.Fatalf("CheckPlayerPassword() failed: %v", err)
 	}
-	if !ok {
+	if player.ID == 0 {
 		t.Fatal("CheckPlayerPassword() should accept exact password match")
 	}
 

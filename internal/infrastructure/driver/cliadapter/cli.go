@@ -33,8 +33,8 @@ Nouns:
            check  <game id> <player id>
   player   add          <name> <username> <password>
            rename       <id> <name>
-           passwd       <id> <current password> <new password>
-           passwd-force <id> <password>
+           passwd       <username> <current password> <new password>
+           passwd-force <username> <password>
            delete       <id>
   auth     validate-passwd <password>
            hash-passwd     <password>
@@ -280,30 +280,22 @@ func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 
 	case "passwd":
 		if len(rest) != 3 {
-			return wrongArgs("player passwd", "player passwd <id> <current password> <new password>")
+			return wrongArgs("player passwd", "player passwd <username> <current password> <new password>")
 		}
-		id, err := parseID(rest[0])
-		if err != nil {
+		if err := c.d.Players.UpdatePlayerPassword(ctx, rest[0], rest[1], rest[2]); err != nil {
 			return fmt.Errorf("player passwd: %w", err)
 		}
-		if err := c.d.Players.UpdatePlayerPassword(ctx, id, rest[1], rest[2]); err != nil {
-			return fmt.Errorf("player passwd: %w", err)
-		}
-		fmt.Fprintf(c.d.Stdout, "player %d password updated\n", id)
+		fmt.Fprintf(c.d.Stdout, "player '%s' password updated\n", rest[0])
 		return nil
 
 	case "passwd-force":
 		if len(rest) != 2 {
-			return wrongArgs("player passwd-force", "player passwd-force <id> <password>")
+			return wrongArgs("player passwd-force", "player passwd-force <username> <password>")
 		}
-		id, err := parseID(rest[0])
-		if err != nil {
+		if err := c.d.Players.UpdatePlayerPasswordForce(ctx, rest[0], rest[1]); err != nil {
 			return fmt.Errorf("player passwd-force: %w", err)
 		}
-		if err := c.d.Players.UpdatePlayerPasswordForce(ctx, id, rest[1]); err != nil {
-			return fmt.Errorf("player passwd-force: %w", err)
-		}
-		fmt.Fprintf(c.d.Stdout, "player %d password forcibly set\n", id)
+		fmt.Fprintf(c.d.Stdout, "player '%s' password forcibly set\n", rest[0])
 		return nil
 
 	case "delete":

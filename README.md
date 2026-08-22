@@ -27,8 +27,8 @@ Nouns:
            check  <game id> <player id>
   player   add          <name> <username> <password>
            rename       <id> <name>
-           passwd       <id> <current password> <new password>
-           passwd-force <id> <password>
+           passwd       <username> <current password> <new password>
+           passwd-force <username> <password>
            delete       <id>
   auth     validate-passwd <password>
            hash-passwd     <password>

@@ -29,32 +29,38 @@ func NewAuthentication(q *database.Queries, tg port.TokenGenerator) *Authenticat
 	}
 }
 
-func (uc *Authentication) CheckPlayerPassword(ctx context.Context, username string, password string) (bool, error) {
+func (uc *Authentication) CheckPlayerPassword(
+	ctx context.Context, username string, password string,
+) (database.Player, error) {
 	if uc.q == nil {
-		return false, fmt.Errorf("database queries are not initialized")
+		return database.Player{}, fmt.Errorf("database queries are not initialized")
 	}
 
 	if len(username) < 3 {
-		return false, fmt.Errorf("Username cannot have less than 3 characters: '%s'", username)
+		return database.Player{}, fmt.Errorf(
+			"Username cannot have less than 3 characters: '%s'", username,
+		)
 	}
 
 	if err := service.IsPasswordValid(password); err != nil {
-		return false, err
+		return database.Player{}, err
 	}
 
 	player, err := uc.q.GetPlayerByUsername(ctx, username)
 	if err != nil {
-		return false, err
+		return database.Player{}, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(player.HashedPassword), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(player.HashedPassword), []byte(password),
+	); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return false, nil
+			return database.Player{}, nil
 		}
-		return false, err
+		return database.Player{}, err
 	}
 
-	return true, nil
+	return player, nil
 }
 
 func (uc *Authentication) LoginPlayer(
@@ -72,21 +78,14 @@ func (uc *Authentication) LoginPlayer(
 		return model.AuthResult{}, ErrBadRequest
 	}
 
-	correct, err := uc.CheckPlayerPassword(ctx, username, password)
+	player, err := uc.CheckPlayerPassword(ctx, username, password)
 	if err != nil {
 		return model.AuthResult{}, fmt.Errorf(
 			"failed to check if password is correct: %w", err,
 		)
 	}
-	if !correct {
+	if player.ID == 0 {
 		return model.AuthResult{}, ErrUnauthorized
-	}
-
-	player, err := uc.q.GetPlayerByUsername(ctx, username)
-	if err != nil {
-		return model.AuthResult{}, fmt.Errorf(
-			"failed to get player by username: %w", err,
-		)
 	}
 
 	token, err := uc.tg.GenerateToken(player)
