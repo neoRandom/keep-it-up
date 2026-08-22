@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/core/port"
+	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -33,7 +33,7 @@ func (g *JwtTokenGenerator) GenerateToken(player database.Player) (string, error
 	claims := &model.JwtPlayerClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(
-				t.Add(time.Hour * 72),
+				t.Add(constant.SessionLifetime),
 			),
 		},
 		UserID: player.ID,
