@@ -40,6 +40,7 @@ func run() int {
 	addr := os.Getenv("SERVER_ADDRESS")
 	if addr == "" {
 		log.Println("failed to get server address")
+		return 1
 	}
 
 	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
@@ -56,7 +57,11 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "open database: %v\n", err)
 		return 1
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close database connection: %v", err)
+		}
+	}()
 	if err := sqlDB.PingContext(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "connect database: %v\n", err)
 		return 1
