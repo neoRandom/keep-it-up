@@ -28,10 +28,6 @@ const SessionCookieName string = "session"
 // `limit` query param (spec default).
 const defaultInteractionsLimit int64 = 20
 
-// errStop signals that a handler has already written a response and must not
-// proceed (e.g. because access was denied).
-var errStop = errors.New("stop handler")
-
 type Deps struct {
 	Auth     port.Authentication
 	Fetch    port.DataFetching
@@ -175,30 +171,31 @@ func (h *HTTPAdapter) playerID(c *echo.Context) (int64, bool) {
 	return claims.UserID, true
 }
 
-// accessChecked parses gameId, enforces the player's access, and returns the
-// actor's player ID. Access failures write the response and return errStop so
-// handlers stop; any response-write error is returned as-is.
-func (h *HTTPAdapter) accessChecked(c *echo.Context) (gameID, playerID int64, err error) {
-	gameID, err = gameIDFromQuery(c)
+// accessChecked parses gameId, verifies the player's access, and returns the
+// actor's player ID. When access is denied it writes the appropriate response
+// and returns denied=true so the handler stops without touching a nil
+// dependency; writeErr carries any failure to write that response.
+func (h *HTTPAdapter) accessChecked(c *echo.Context) (gameID, playerID int64, denied bool, writeErr error) {
+	gameID, err := gameIDFromQuery(c)
 	if err != nil {
 		log.Printf("bad request: %v", err)
-		return 0, 0, badRequest(c, "Invalid gameId")
+		return 0, 0, true, badRequest(c, "Invalid gameId")
 	}
 
-	pid, ok := h.playerID(c)
+	playerID, ok := h.playerID(c)
 	if !ok {
-		return 0, 0, unauthorised(c, "Authentication required")
+		return 0, 0, true, unauthorised(c, "Authentication required")
 	}
 
-	granted, err := h.d.Access.CheckPlayerAccess(c.Request().Context(), gameID, pid)
+	granted, err := h.d.Access.CheckPlayerAccess(c.Request().Context(), gameID, playerID)
 	if err != nil {
 		log.Printf("access check error for game %d: %v", gameID, err)
-		return 0, 0, internal(c)
+		return 0, 0, true, internal(c)
 	}
 	if !granted {
-		return 0, 0, notFound(c, "Game not found or inaccessible")
+		return 0, 0, true, notFound(c, "Game not found or inaccessible")
 	}
-	return gameID, pid, nil
+	return gameID, playerID, false, nil
 }
 
 func (h *HTTPAdapter) handleListGames(ctx *echo.Context) error {
@@ -221,9 +218,12 @@ func (h *HTTPAdapter) handleListGames(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleGetShared(ctx *echo.Context) error {
-	gameID, _, err := h.accessChecked(ctx)
+	gameID, _, denied, err := h.accessChecked(ctx)
 	if err != nil {
 		return err
+	}
+	if denied {
+		return nil
 	}
 
 	shared, err := h.d.Fetch.GetSharedData(ctx.Request().Context(), gameID)
@@ -243,9 +243,12 @@ func (h *HTTPAdapter) handleGetShared(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
-	gameID, playerID, err := h.accessChecked(ctx)
+	gameID, playerID, denied, err := h.accessChecked(ctx)
 	if err != nil {
 		return err
+	}
+	if denied {
+		return nil
 	}
 
 	var body saveRequest
@@ -263,9 +266,12 @@ func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
-	gameID, playerID, err := h.accessChecked(ctx)
+	gameID, playerID, denied, err := h.accessChecked(ctx)
 	if err != nil {
 		return err
+	}
+	if denied {
+		return nil
 	}
 
 	if err := h.d.Commands.ResumeGame(ctx.Request().Context(), gameID, playerID); err != nil {
@@ -275,9 +281,12 @@ func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
-	gameID, playerID, err := h.accessChecked(ctx)
+	gameID, playerID, denied, err := h.accessChecked(ctx)
 	if err != nil {
 		return err
+	}
+	if denied {
+		return nil
 	}
 
 	if err := h.d.Commands.PauseGame(ctx.Request().Context(), gameID, playerID); err != nil {
@@ -287,15 +296,18 @@ func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
-	gameID, _, err := h.accessChecked(ctx)
-	if err != nil {
-		return err
-	}
-
 	limit, err := interactionsLimit(ctx)
 	if err != nil {
 		log.Printf("bad request: %v", err)
 		return badRequest(ctx, "Invalid limit")
+	}
+
+	gameID, _, denied, writeErr := h.accessChecked(ctx)
+	if writeErr != nil {
+		return writeErr
+	}
+	if denied {
+		return nil
 	}
 
 	interactions, err := h.d.Fetch.ListInteractions(ctx.Request().Context(), gameID, limit)
