@@ -195,13 +195,16 @@ func (h *HTTPAdapter) handleLogin(ctx *echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-// parseGameID extracts and validates the required `gameId` query parameter.
-func parseGameID(c *echo.Context) (int64, bool) {
-	id, err := strconv.ParseInt(c.QueryParam("gameId"), 10, 64)
+// parseGameID extracts and parses the required `gameId` query parameter. The
+// underlying ParseInt error is wrapped (not discarded) so callers can log the
+// actual cause, matching the CLI adapter's parseID convention.
+func parseGameID(c *echo.Context) (int64, error) {
+	raw := c.QueryParam("gameId")
+	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
-		return 0, false
+		return 0, fmt.Errorf("invalid gameId %q: %w", raw, err)
 	}
-	return id, true
+	return id, nil
 }
 
 // playerIDFromContext returns the authenticated player ID from the JWT claims
@@ -277,8 +280,9 @@ func (h *HTTPAdapter) handleListGames(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleGetShared(ctx *echo.Context) error {
-	gameID, ok := parseGameID(ctx)
-	if !ok {
+	gameID, err := parseGameID(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
 	denied, err := h.requireAccess(ctx, gameID)
@@ -321,8 +325,9 @@ func conflictStatusFromErr(err error) bool {
 }
 
 func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
-	gameID, ok := parseGameID(ctx)
-	if !ok {
+	gameID, err := parseGameID(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
 	denied, err := h.requireAccess(ctx, gameID)
@@ -358,8 +363,9 @@ func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
-	gameID, ok := parseGameID(ctx)
-	if !ok {
+	gameID, err := parseGameID(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
 	denied, err := h.requireAccess(ctx, gameID)
@@ -387,8 +393,9 @@ func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
-	gameID, ok := parseGameID(ctx)
-	if !ok {
+	gameID, err := parseGameID(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
 	denied, err := h.requireAccess(ctx, gameID)
@@ -416,8 +423,9 @@ func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
-	gameID, ok := parseGameID(ctx)
-	if !ok {
+	gameID, err := parseGameID(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid gameId"})
 	}
 
@@ -425,6 +433,7 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 	if raw := ctx.QueryParam("limit"); raw != "" {
 		parsed, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || parsed < 1 {
+			log.Printf("bad request: invalid limit %q: %v", raw, err)
 			return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid limit"})
 		}
 		limit = parsed
