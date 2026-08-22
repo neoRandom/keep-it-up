@@ -65,6 +65,11 @@ func run() int {
 	q := database.New(sqlDB)
 
 	timeProvider := &driven.DefaultTimeProvider{}
+
+	fetching := usecase.NewDataFetching(q)
+	commands := usecase.NewGameCommands(q, timeProvider)
+	access := usecase.NewAccessManagement(q)
+
 	deps := httpadapter.Deps{
 		Auth: usecase.NewAuthentication(
 			q,
@@ -73,6 +78,9 @@ func run() int {
 				TimeProvider: timeProvider,
 			},
 		),
+		Fetch:    fetching,
+		Commands: commands,
+		Access:   access,
 	}
 
 	adapter := httpadapter.New(
