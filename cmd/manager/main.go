@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -44,7 +45,11 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "open database: %v\n", err)
 		return 1
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close database connection: %v", err)
+		}
+	}()
 	if err := sqlDB.PingContext(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "connect database: %v\n", err)
 		return 1
@@ -53,14 +58,15 @@ func run() int {
 	q := database.New(sqlDB)
 
 	// --- Application side: use cases implementing the driver ports ----
+	timeProvider := &driven.DefaultTimeProvider{}
 	auth := usecase.NewAuthentication(q, nil)
 	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
-		Fetch:    usecase.NewDataFetching(q),
-		Commands: usecase.NewGameCommands(q, &driven.DefaultTimeProvider{}),
+		Fetch:    usecase.NewDataFetching(q, timeProvider),
+		Commands: usecase.NewGameCommands(q, timeProvider),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}
@@ -69,7 +75,7 @@ func run() int {
 	cli := cliadapter.New(deps)
 
 	if err := cli.Run(ctx, os.Args[1:]); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	return 0

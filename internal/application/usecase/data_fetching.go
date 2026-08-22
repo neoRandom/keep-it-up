@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 )
 
 type DataFetching struct {
-	q *database.Queries
+	q  *database.Queries
+	tp port.TimeProvider
 }
 
-func NewDataFetching(q *database.Queries) *DataFetching {
-	return &DataFetching{q: q}
+func NewDataFetching(q *database.Queries, tp port.TimeProvider) *DataFetching {
+	return &DataFetching{q: q, tp: tp}
 }
 
 func (uc *DataFetching) ListPlayerGames(
@@ -28,7 +30,11 @@ func (uc *DataFetching) ListPlayerGames(
 		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
-	return uc.q.ListPlayerGames(ctx, playerId)
+	games, err := uc.q.ListPlayerGames(ctx, playerId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list games for player %d: %w", playerId, err)
+	}
+	return games, nil
 }
 
 func (uc *DataFetching) GetSharedData(
@@ -36,6 +42,10 @@ func (uc *DataFetching) GetSharedData(
 ) (*model.SharedData, error) {
 	if uc.q == nil {
 		return nil, errors.New("database queries are not initialized")
+	}
+
+	if uc.tp == nil {
+		return nil, errors.New("time provider is not initialized")
 	}
 
 	if gameId < 1 {
@@ -49,7 +59,12 @@ func (uc *DataFetching) GetSharedData(
 		)
 	}
 
-	return service.BuildSharedData(gameId, interactions)
+	now, err := uc.tp.Time()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current time: %w", err)
+	}
+
+	return service.BuildSharedData(gameId, interactions, now)
 }
 
 func (uc *DataFetching) ListInteractions(
@@ -67,11 +82,15 @@ func (uc *DataFetching) ListInteractions(
 		return nil, errors.New("query limit cannot be less than 0")
 	}
 
-	return uc.q.ListRecentInteractions(
+	interactions, err := uc.q.ListRecentInteractions(
 		ctx,
 		database.ListRecentInteractionsParams{
 			GameID: gameId,
 			Limit:  limit,
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interactions for game %d: %w", gameId, err)
+	}
+	return interactions, nil
 }

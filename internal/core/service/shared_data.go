@@ -18,8 +18,11 @@ func ComputeValid(s *model.SharedData, now time.Time) {
 	s.Valid = &valid
 }
 
+// BuildSharedData assembles the current SharedData from a game's interactions.
+// `now` is used to compute the time-dependent "valid" flag, so the returned
+// value always carries a Valid consistent with its deadline.
 func BuildSharedData(
-	gameId int64, interactions []database.Interaction,
+	gameId int64, interactions []database.Interaction, now time.Time,
 ) (*model.SharedData, error) {
 	data := &model.SharedData{
 		GameID: gameId,
@@ -111,5 +114,6 @@ func BuildSharedData(
 		}
 	}
 
+	ComputeValid(data, now)
 	return data, nil
 }

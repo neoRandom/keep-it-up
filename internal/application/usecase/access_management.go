@@ -37,8 +37,11 @@ func (uc *AccessManagement) GrantPlayerAccess(
 			PlayerID: playerId,
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to grant player %d access to game %d: %w", playerId, gameId, err)
+	}
 
-	return err
+	return nil
 }
 
 func (uc *AccessManagement) RevokePlayerAccess(
@@ -56,13 +59,16 @@ func (uc *AccessManagement) RevokePlayerAccess(
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
 
-	return uc.q.RevokePlayerAccess(
+	if err := uc.q.RevokePlayerAccess(
 		ctx,
 		database.RevokePlayerAccessParams{
 			GameID:   gameId,
 			PlayerID: playerId,
 		},
-	)
+	); err != nil {
+		return fmt.Errorf("failed to revoke player %d access to game %d: %w", playerId, gameId, err)
+	}
+	return nil
 }
 
 func (uc *AccessManagement) CheckPlayerAccess(
@@ -80,11 +86,15 @@ func (uc *AccessManagement) CheckPlayerAccess(
 		return false, fmt.Errorf("invalid player ID: %d", playerId)
 	}
 	
-	return uc.q.CheckPlayerAccess(
+	granted, err := uc.q.CheckPlayerAccess(
 		ctx,
 		database.CheckPlayerAccessParams{
 			GameID: gameId,
 			PlayerID: playerId,
 		},
 	)
+	if err != nil {
+		return false, fmt.Errorf("failed to check player %d access to game %d: %w", playerId, gameId, err)
+	}
+	return granted, nil
 }

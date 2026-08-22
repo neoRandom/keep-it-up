@@ -2,6 +2,8 @@
 
 A system that coordinates periodic interactions across multiple devices and tracks when the next interaction is required.
 
+>Disclimer: This system is not a game, nor was it created for a game. The project's design merely happens to coincide with the world of gaming; for this reason, I decided to use similar names to make it easier to understand and visualize.
+
 ## Tech Stack
 
 ```text
@@ -25,8 +27,8 @@ Nouns:
            check  <game id> <player id>
   player   add          <name> <username> <password>
            rename       <id> <name>
-           passwd       <id> <current password> <new password>
-           passwd-force <id> <password>
+           passwd       <username> <current password> <new password>
+           passwd-force <username> <password>
            delete       <id>
   auth     validate-passwd <password>
            hash-passwd     <password>

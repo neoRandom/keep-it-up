@@ -53,7 +53,7 @@ func TestPlayerManagement_UpdatePlayerPassword(t *testing.T) {
 		t.Fatalf("setup: AddPlayer() returned error: %v", err)
 	}
 
-	if err := uc.UpdatePlayerPassword(ctx, created.ID, "secret123", "newpass123"); err != nil {
+	if err := uc.UpdatePlayerPassword(ctx, created.Username, "secret123", "newpass123"); err != nil {
 		t.Fatalf("UpdatePlayerPassword() returned error: %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestPlayerManagement_RejectsInvalidPlayerInput(t *testing.T) {
 		t.Fatal("UpdatePlayerName() accepted short name")
 	}
 
-	if err := uc.UpdatePlayerPassword(ctx, 1, "secret123", "short"); err == nil {
+	if err := uc.UpdatePlayerPassword(ctx, "alice", "secret123", "short"); err == nil {
 		t.Fatal("UpdatePlayerPassword() accepted short password")
 	}
 }
@@ -136,8 +136,14 @@ func TestPlayerManagement_TrimPasswordWhitespaceBeforeStorage(t *testing.T) {
 			t.Fatalf("AddPlayer() stored the raw password with whitespace for %q", tc.password)
 		}
 
-		if ok, err := NewAuthentication(queries, nil).CheckPlayerPassword(ctx, tc.username, strings.TrimSpace(tc.password)); err != nil || !ok {
-			t.Fatalf("CheckPlayerPassword() should accept username=%q with trimmed password=%q: ok=%v err=%v", tc.username, strings.TrimSpace(tc.password), ok, err)
+		if player, err := NewAuthentication(
+			queries, nil,
+		).CheckPlayerPassword(
+			ctx, tc.username, strings.TrimSpace(tc.password),
+		); err != nil || player.ID == 0 {
+			t.Fatalf("CheckPlayerPassword() should accept username=%q with trimmed password=%q: ok=%v err=%v", 
+			tc.username, strings.TrimSpace(tc.password), player.ID == 0, err,
+		)
 		}
 	}
 
@@ -195,12 +201,6 @@ func TestPlayerManagement_RejectsInvalidIDs(t *testing.T) {
 		if err := uc.BaseUpdatePlayerPassword(ctx, id, "secret123"); err == nil {
 			t.Fatalf("BaseUpdatePlayerPassword() accepted invalid id=%d", id)
 		}
-		if err := uc.UpdatePlayerPassword(ctx, id, "secret123", "newpass123"); err == nil {
-			t.Fatalf("UpdatePlayerPassword() accepted invalid id=%d", id)
-		}
-		if err := uc.UpdatePlayerPasswordForce(ctx, id, "newpass123"); err == nil {
-			t.Fatalf("UpdatePlayerPasswordForce() accepted invalid id=%d", id)
-		}
 		if err := uc.DeletePlayer(ctx, id); err == nil {
 			t.Fatalf("DeletePlayer() accepted invalid id=%d", id)
 		}
@@ -217,7 +217,7 @@ func TestPlayerManagement_ForcePasswordUpdateBypassesPreviousPasswordCheck(t *te
 		t.Fatalf("AddPlayer() returned error: %v", err)
 	}
 
-	if err := uc.UpdatePlayerPasswordForce(ctx, created.ID, "newpass456"); err != nil {
+	if err := uc.UpdatePlayerPasswordForce(ctx, created.Username, "newpass456"); err != nil {
 		t.Fatalf("UpdatePlayerPasswordForce() returned error: %v", err)
 	}
 
@@ -240,7 +240,7 @@ func TestPlayerManagement_RejectsWrongPreviousPassword(t *testing.T) {
 		t.Fatalf("AddPlayer() returned error: %v", err)
 	}
 
-	if err := uc.UpdatePlayerPassword(ctx, created.ID, "wrongpassword", "newpass456"); err == nil {
+	if err := uc.UpdatePlayerPassword(ctx, created.Username, "wrongpassword", "newpass456"); err == nil {
 		t.Fatal("UpdatePlayerPassword() accepted an incorrect previous password")
 	}
 }
@@ -318,9 +318,9 @@ func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 	}
 
 	// Verify can authenticate
-	ok, err := auth.CheckPlayerPassword(ctx, "testuser", "password123")
-	if err != nil || !ok {
-		t.Fatalf("CheckPlayerPassword() should succeed: ok=%v err=%v", ok, err)
+	player, err = auth.CheckPlayerPassword(ctx, "testuser", "password123")
+	if err != nil || player.ID == 0 {
+		t.Fatalf("CheckPlayerPassword() should succeed: ok=%v err=%v", player.ID == 0, err)
 	}
 
 	// Update name
@@ -329,20 +329,23 @@ func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 	}
 
 	// Update password using old password
-	if err := uc.UpdatePlayerPassword(ctx, player.ID, "password123", "newpassword456"); err != nil {
+	if err := uc.UpdatePlayerPassword(ctx, player.Username, "password123", "newpassword456"); err != nil {
 		t.Fatalf("UpdatePlayerPassword() returned error: %v", err)
 	}
 
 	// Verify old password no longer works
-	ok, err = auth.CheckPlayerPassword(ctx, "testuser", "password123")
-	if err == nil && ok {
+	player, err = auth.CheckPlayerPassword(ctx, "testuser", "password123")
+	if err == nil && player.ID != 0 {
 		t.Fatal("CheckPlayerPassword() should fail with old password")
 	}
 
 	// Verify new password works
-	ok, err = auth.CheckPlayerPassword(ctx, "testuser", "newpassword456")
-	if err != nil || !ok {
-		t.Fatalf("CheckPlayerPassword() should succeed with new password: ok=%v err=%v", ok, err)
+	player, err = auth.CheckPlayerPassword(ctx, "testuser", "newpassword456")
+	if err != nil || player.ID == 0 {
+		t.Fatalf(
+			"CheckPlayerPassword() should succeed with new password: ok=%v err=%v", 
+			player.ID == 0, err,
+		)
 	}
 
 	// Delete
@@ -379,7 +382,7 @@ func TestPlayerManagement_UpdatePlayerPasswordWithCancelledContext(t *testing.T)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := uc.UpdatePlayerPassword(ctx, created.ID, "secret123", "newpass456"); err == nil {
+	if err := uc.UpdatePlayerPassword(ctx, created.Username, "secret123", "newpass456"); err == nil {
 		t.Fatal("UpdatePlayerPassword() should return error for cancelled context")
 	}
 }
@@ -407,7 +410,7 @@ func TestPlayerManagement_UpdatePlayerPasswordForceWithCancelledContext(t *testi
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	if err := uc.UpdatePlayerPasswordForce(ctx, created.ID, "newpass456"); err == nil {
+	if err := uc.UpdatePlayerPasswordForce(ctx, created.Username, "newpass456"); err == nil {
 		t.Fatal("UpdatePlayerPasswordForce() should return error for cancelled context")
 	}
 }
@@ -492,11 +495,11 @@ func TestPlayerManagement_RejectsNilAuthDependencyInAllMethods(t *testing.T) {
 		t.Fatal("BaseUpdatePlayerPassword() accepted nil auth")
 	}
 
-	if err := uc.UpdatePlayerPassword(ctx, player.ID, "secret123", "newpass123"); err == nil {
+	if err := uc.UpdatePlayerPassword(ctx, player.Username, "secret123", "newpass123"); err == nil {
 		t.Fatal("UpdatePlayerPassword() accepted nil auth")
 	}
 
-	if err := uc.UpdatePlayerPasswordForce(ctx, player.ID, "newpass123"); err == nil {
+	if err := uc.UpdatePlayerPasswordForce(ctx, player.Username, "newpass123"); err == nil {
 		t.Fatal("UpdatePlayerPasswordForce() accepted nil auth")
 	}
 }
@@ -521,11 +524,11 @@ func TestPlayerManagement_RejectsNilQueryDependencyInAllMethods(t *testing.T) {
 		t.Fatal("BaseUpdatePlayerPassword() accepted nil queries")
 	}
 
-	if err := uc.UpdatePlayerPassword(ctx, 1, "secret123", "newpass123"); err == nil {
+	if err := uc.UpdatePlayerPassword(ctx, "alice", "secret123", "newpass123"); err == nil {
 		t.Fatal("UpdatePlayerPassword() accepted nil queries")
 	}
 
-	if err := uc.UpdatePlayerPasswordForce(ctx, 1, "newpass123"); err == nil {
+	if err := uc.UpdatePlayerPasswordForce(ctx, "alice", "newpass123"); err == nil {
 		t.Fatal("UpdatePlayerPasswordForce() accepted nil queries")
 	}
 

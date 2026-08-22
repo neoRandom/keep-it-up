@@ -68,23 +68,27 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return database.Player{}, err
+		return database.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
-	return uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
+	player, err := uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
 		Name:           name,
 		Username:       username,
 		HashedPassword: hashedPassword,
 	})
+	if err != nil {
+		return database.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
+	}
+	return player, nil
 }
 
-func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name string) error {
+func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64, name string) error {
 	if uc.q == nil {
 		return fmt.Errorf("database queries are not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+	if playerId < 1 {
+		return fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
 	name = strings.TrimSpace(name)
@@ -93,10 +97,13 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 		return fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
 	}
 
-	return uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
-		ID:   id,
+	if err := uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
+		ID:   playerId,
 		Name: name,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to update player name for id %d: %w", playerId, err)
+	}
+	return nil
 }
 
 func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int64, password string) error {
@@ -119,30 +126,30 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
-	return uc.q.UpdatePlayerPassword(ctx, database.UpdatePlayerPasswordParams{
+	if err := uc.q.UpdatePlayerPassword(ctx, database.UpdatePlayerPasswordParams{
 		ID:             id,
 		HashedPassword: hashedPassword,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to update password for player %d: %w", id, err)
+	}
+	return nil
 }
 
-func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, currentPassword string, newPassword string) error {
+func (uc *PlayerManagement) UpdatePlayerPassword(
+	ctx context.Context, username, currentPassword, newPassword string,
+) error {
 	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
+		return errors.New("database queries are not initialized")
 	}
 	if uc.auth == nil {
-		return fmt.Errorf("authentication is not initialized")
+		return errors.New("authentication is not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
-	}
-
-	player, err := uc.q.GetPlayer(ctx, id)
-	if err != nil {
-		return err
+	if strings.TrimSpace(username) == "" {
+		return errors.New("username cannot be empty string")
 	}
 
 	currentPassword = strings.TrimSpace(currentPassword)
@@ -155,48 +162,61 @@ func (uc *PlayerManagement) UpdatePlayerPassword(ctx context.Context, id int64, 
 		return err
 	}
 
+	player, err := uc.auth.CheckPlayerPassword(ctx, username, currentPassword)
+	if err != nil {
+		return err
+	}
+	if player.ID == 0 {
+		return errors.New("incorrect current password")
+	}
+	
 	if newPassword == player.Username {
 		return errors.New("new player password cannot be equal to its username")
 	}
 
-	valid, err := uc.auth.CheckPlayerPassword(ctx, player.Username, currentPassword)
-	if err != nil {
-		return err
-	}
-	if !valid {
-		return fmt.Errorf("incorrect current password")
-	}
-
-	return uc.BaseUpdatePlayerPassword(ctx, id, newPassword)
+	return uc.BaseUpdatePlayerPassword(ctx, player.ID, newPassword)
 }
 
-func (uc *PlayerManagement) UpdatePlayerPasswordForce(ctx context.Context, id int64, password string) error {
+func (uc *PlayerManagement) UpdatePlayerPasswordForce(
+	ctx context.Context, username, password string,
+) error {
 	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
+		return errors.New("database queries are not initialized")
 	}
 	if uc.auth == nil {
-		return fmt.Errorf("authentication is not initialized")
+		return errors.New("authentication is not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+	if strings.TrimSpace(username) == "" {
+		return errors.New("username cannot be empty string")
 	}
 
 	if err := service.IsPasswordValid(password); err != nil {
 		return err
 	}
+	
+	player, err := uc.q.GetPlayerByUsername(ctx, username)
+	if err != nil {
+		return fmt.Errorf("failed to get player by username: %w", err)
+	}
+	if player.ID == 0 {
+		return errors.New("player does not exist")
+	}
 
-	return uc.BaseUpdatePlayerPassword(ctx, id, password)
+	return uc.BaseUpdatePlayerPassword(ctx, player.ID, password)
 }
 
-func (uc *PlayerManagement) DeletePlayer(ctx context.Context, id int64) error {
+func (uc *PlayerManagement) DeletePlayer(ctx context.Context, playerId int64) error {
 	if uc.q == nil {
 		return fmt.Errorf("database queries are not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+	if playerId < 1 {
+		return fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
-	return uc.q.DeletePlayer(ctx, id)
+	if err := uc.q.DeletePlayer(ctx, playerId); err != nil {
+		return fmt.Errorf("failed to delete player %d: %w", playerId, err)
+	}
+	return nil
 }
