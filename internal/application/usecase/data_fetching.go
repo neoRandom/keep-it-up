@@ -59,20 +59,12 @@ func (uc *DataFetching) GetSharedData(
 		)
 	}
 
-	shared, err := service.BuildSharedData(gameId, interactions)
-	if err != nil {
-		return nil, err
-	}
-
-	// Compute the time-dependent "valid" flag so readers always receive a
-	// non-null value whenever a deadline is present (per the SharedData spec).
 	now, err := uc.tp.Time()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current time: %w", err)
 	}
-	service.ComputeValid(shared, now)
 
-	return shared, nil
+	return service.BuildSharedData(gameId, interactions, now)
 }
 
 func (uc *DataFetching) ListInteractions(
