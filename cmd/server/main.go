@@ -71,7 +71,7 @@ func run() int {
 
 	timeProvider := &driven.DefaultTimeProvider{}
 
-	fetching := usecase.NewDataFetching(q)
+	fetching := usecase.NewDataFetching(q, timeProvider)
 	commands := usecase.NewGameCommands(q, timeProvider)
 	access := usecase.NewAccessManagement(q)
 

@@ -58,14 +58,15 @@ func run() int {
 	q := database.New(sqlDB)
 
 	// --- Application side: use cases implementing the driver ports ----
+	timeProvider := &driven.DefaultTimeProvider{}
 	auth := usecase.NewAuthentication(q, nil)
 	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
 		Players:  usecase.NewPlayerManagement(q, auth),
 		Auth:     auth,
-		Fetch:    usecase.NewDataFetching(q),
-		Commands: usecase.NewGameCommands(q, &driven.DefaultTimeProvider{}),
+		Fetch:    usecase.NewDataFetching(q, timeProvider),
+		Commands: usecase.NewGameCommands(q, timeProvider),
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 	}

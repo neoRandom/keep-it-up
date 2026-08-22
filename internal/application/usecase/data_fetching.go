@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
 )
 
 type DataFetching struct {
-	q *database.Queries
+	q  *database.Queries
+	tp port.TimeProvider
 }
 
-func NewDataFetching(q *database.Queries) *DataFetching {
-	return &DataFetching{q: q}
+func NewDataFetching(q *database.Queries, tp port.TimeProvider) *DataFetching {
+	return &DataFetching{q: q, tp: tp}
 }
 
 func (uc *DataFetching) ListPlayerGames(
@@ -42,6 +44,10 @@ func (uc *DataFetching) GetSharedData(
 		return nil, errors.New("database queries are not initialized")
 	}
 
+	if uc.tp == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+
 	if gameId < 1 {
 		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
 	}
@@ -53,7 +59,20 @@ func (uc *DataFetching) GetSharedData(
 		)
 	}
 
-	return service.BuildSharedData(gameId, interactions)
+	shared, err := service.BuildSharedData(gameId, interactions)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compute the time-dependent "valid" flag so readers always receive a
+	// non-null value whenever a deadline is present (per the SharedData spec).
+	now, err := uc.tp.Time()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current time: %w", err)
+	}
+	service.ComputeValid(shared, now)
+
+	return shared, nil
 }
 
 func (uc *DataFetching) ListInteractions(
