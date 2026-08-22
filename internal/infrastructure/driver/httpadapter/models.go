@@ -11,6 +11,16 @@ const SessionCookieName string = "session"
 // defaultInteractionsLimit is used when the `limit` query param is omitted.
 const defaultInteractionsLimit int64 = 20
 
+// Client-facing error messages. Kept as constants so wording stays consistent
+// across handlers.
+const (
+	msgAuthenticationRequired = "Authentication required"
+	msgInvalidGameID          = "Invalid gameId"
+	msgGameNotFound           = "Game not found or inaccessible"
+	msgGameNotPlaying         = "Game is not currently playing"
+	msgGameNotPaused          = "Game is not currently paused"
+)
+
 type gameDTO struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`

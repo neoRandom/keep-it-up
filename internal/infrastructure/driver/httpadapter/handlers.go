@@ -61,7 +61,7 @@ func (h *HTTPAdapter) handleLogin(ctx *echo.Context) error {
 func (h *HTTPAdapter) handleListGames(ctx *echo.Context) error {
 	playerID, ok := h.playerID(ctx)
 	if !ok {
-		return unauthorised(ctx, "Authentication required")
+		return unauthorised(ctx, msgAuthenticationRequired)
 	}
 
 	games, err := h.d.Fetch.ListPlayerGames(ctx.Request().Context(), playerID)
@@ -120,7 +120,7 @@ func (h *HTTPAdapter) handleSave(ctx *echo.Context) error {
 	}
 
 	if err := h.d.Commands.SaveGame(ctx.Request().Context(), gameID, playerID, body.Duration); err != nil {
-		return commandError(ctx, err, "save game error", "Game is not currently playing")
+		return commandError(ctx, err, "save game error", msgGameNotPlaying)
 	}
 	return ctx.NoContent(http.StatusNoContent)
 }
@@ -135,7 +135,7 @@ func (h *HTTPAdapter) handleResume(ctx *echo.Context) error {
 	}
 
 	if err := h.d.Commands.ResumeGame(ctx.Request().Context(), gameID, playerID); err != nil {
-		return commandError(ctx, err, "resume game error", "Game is not currently paused")
+		return commandError(ctx, err, "resume game error", msgGameNotPaused)
 	}
 	return ctx.NoContent(http.StatusNoContent)
 }
@@ -150,7 +150,7 @@ func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
 	}
 
 	if err := h.d.Commands.PauseGame(ctx.Request().Context(), gameID, playerID); err != nil {
-		return commandError(ctx, err, "pause game error", "Game is not currently playing")
+		return commandError(ctx, err, "pause game error", msgGameNotPlaying)
 	}
 	return ctx.NoContent(http.StatusNoContent)
 }
@@ -210,12 +210,12 @@ func (h *HTTPAdapter) accessChecked(c *echo.Context) (gameID, playerID int64, de
 	gameID, err := gameIDFromQuery(c)
 	if err != nil {
 		log.Printf("bad request: %v", err)
-		return 0, 0, true, badRequest(c, "Invalid gameId")
+		return 0, 0, true, badRequest(c, msgInvalidGameID)
 	}
 
 	playerID, ok := h.playerID(c)
 	if !ok {
-		return 0, 0, true, unauthorised(c, "Authentication required")
+		return 0, 0, true, unauthorised(c, msgAuthenticationRequired)
 	}
 
 	granted, err := h.d.Access.CheckPlayerAccess(c.Request().Context(), gameID, playerID)
@@ -224,7 +224,7 @@ func (h *HTTPAdapter) accessChecked(c *echo.Context) (gameID, playerID int64, de
 		return 0, 0, true, internal(c)
 	}
 	if !granted {
-		return 0, 0, true, notFound(c, "Game not found or inaccessible")
+		return 0, 0, true, notFound(c, msgGameNotFound)
 	}
 	return gameID, playerID, false, nil
 }
