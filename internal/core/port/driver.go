@@ -23,7 +23,7 @@ type PlayerManagement interface {
 		ctx context.Context, name, username, password string,
 	) (database.Player, error)
 	UpdatePlayerName(
-		ctx context.Context, id int64, name string,
+		ctx context.Context, playerId int64, name string,
 	) error
 	UpdatePlayerPassword(
 		ctx context.Context, username, currentPassword, newPassword string,
@@ -32,7 +32,7 @@ type PlayerManagement interface {
 		ctx context.Context, username, password string,
 	) error
 	DeletePlayer(
-		ctx context.Context, id int64,
+		ctx context.Context, playerId int64,
 	) error
 }
 

@@ -82,13 +82,13 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	return player, nil
 }
 
-func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name string) error {
+func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64, name string) error {
 	if uc.q == nil {
 		return fmt.Errorf("database queries are not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+	if playerId < 1 {
+		return fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
 	name = strings.TrimSpace(name)
@@ -98,10 +98,10 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, id int64, name
 	}
 
 	if err := uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
-		ID:   id,
+		ID:   playerId,
 		Name: name,
 	}); err != nil {
-		return fmt.Errorf("failed to update player name for id %d: %w", id, err)
+		return fmt.Errorf("failed to update player name for id %d: %w", playerId, err)
 	}
 	return nil
 }
@@ -206,17 +206,17 @@ func (uc *PlayerManagement) UpdatePlayerPasswordForce(
 	return uc.BaseUpdatePlayerPassword(ctx, player.ID, password)
 }
 
-func (uc *PlayerManagement) DeletePlayer(ctx context.Context, id int64) error {
+func (uc *PlayerManagement) DeletePlayer(ctx context.Context, playerId int64) error {
 	if uc.q == nil {
 		return fmt.Errorf("database queries are not initialized")
 	}
 
-	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+	if playerId < 1 {
+		return fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
-	if err := uc.q.DeletePlayer(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete player %d: %w", id, err)
+	if err := uc.q.DeletePlayer(ctx, playerId); err != nil {
+		return fmt.Errorf("failed to delete player %d: %w", playerId, err)
 	}
 	return nil
 }

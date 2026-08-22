@@ -268,14 +268,14 @@ func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 		if len(rest) != 2 {
 			return wrongArgs("player rename", "player rename <id> <name>")
 		}
-		id, err := parseID(rest[0])
+		playerID, err := parseID(rest[0])
 		if err != nil {
 			return fmt.Errorf("player rename: %w", err)
 		}
-		if err := c.d.Players.UpdatePlayerName(ctx, id, rest[1]); err != nil {
+		if err := c.d.Players.UpdatePlayerName(ctx, playerID, rest[1]); err != nil {
 			return fmt.Errorf("player rename: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "player %d renamed\n", id)
+		fmt.Fprintf(c.d.Stdout, "player %d renamed\n", playerID)
 		return nil
 
 	case "passwd":
@@ -302,14 +302,14 @@ func (c *CLI) runPlayer(ctx context.Context, args []string) error {
 		if len(rest) != 1 {
 			return wrongArgs("player delete", "player delete <id>")
 		}
-		id, err := parseID(rest[0])
+		playerID, err := parseID(rest[0])
 		if err != nil {
 			return fmt.Errorf("player delete: %w", err)
 		}
-		if err := c.d.Players.DeletePlayer(ctx, id); err != nil {
+		if err := c.d.Players.DeletePlayer(ctx, playerID); err != nil {
 			return fmt.Errorf("player delete: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "player %d deleted\n", id)
+		fmt.Fprintf(c.d.Stdout, "player %d deleted\n", playerID)
 		return nil
 
 	default:
