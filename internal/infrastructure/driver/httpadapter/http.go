@@ -94,6 +94,12 @@ func (h *HTTPAdapter) routes(e *echo.Echo) {
 	api.Use(echojwt.WithConfig(echojwt.Config{
 		SigningKey:  []byte(h.jwtSecret),
 		TokenLookup: fmt.Sprintf("cookie:%s", SessionCookieName),
+		// Parse the JWT into our typed claims so handlers can read the actor's
+		// UserID directly. Without this the middleware defaults to jwt.MapClaims
+		// and the *model.JwtPlayerClaims cast in playerIDFromContext fails.
+		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
+			return &model.JwtPlayerClaims{}
+		},
 	}))
 
 	api.GET("/test", func(ctx *echo.Context) error {
