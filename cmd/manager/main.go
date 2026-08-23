@@ -60,10 +60,16 @@ func run() int {
 	// --- Application side: use cases implementing the driver ports ----
 	timeProvider := &driven.DefaultTimeProvider{}
 	auth := usecase.NewAuthentication(q, nil)
+	players, err := usecase.NewPlayerManagement(q, auth)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create player management: %v\n", err)
+		return 1
+	}
+
 	deps := cliadapter.Deps{
 		Games:    usecase.NewGameManagement(q),
 		Access:   usecase.NewAccessManagement(q),
-		Players:  usecase.NewPlayerManagement(q, auth),
+		Players:  players,
 		Auth:     auth,
 		Fetch:    usecase.NewDataFetching(q, timeProvider),
 		Commands: usecase.NewGameCommands(q, timeProvider),

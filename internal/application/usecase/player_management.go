@@ -16,11 +16,11 @@ type PlayerManagement struct {
 	auth port.Authentication
 }
 
-func NewPlayerManagement(q *database.Queries, auth port.Authentication) *PlayerManagement {
+func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*PlayerManagement, error) {
 	if auth == nil {
-		return nil
+		return nil, errors.New("authentication is not initialized")
 	}
-	return &PlayerManagement{q: q, auth: auth}
+	return &PlayerManagement{q: q, auth: auth}, nil
 }
 
 func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (database.Player, error) {
