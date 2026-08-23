@@ -11,6 +11,17 @@ const SessionCookieName string = "session"
 // defaultInteractionsLimit is used when the `limit` query param is omitted.
 const defaultInteractionsLimit int64 = 20
 
+// defaultInteractionsOffset is used when the `offset` query param is omitted.
+const defaultInteractionsOffset int64 = 0
+
+// Interactions query param enum values. `query=all` is the legacy behavior.
+const (
+	queryAll    = "all"
+	queryPlayer = "player"
+	queryFirst  = "first"
+	queryLast   = "last"
+)
+
 // Client-facing error messages. Kept as constants so wording stays consistent
 // across handlers.
 const (
