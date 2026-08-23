@@ -1,54 +1,21 @@
-package database
+package database_test
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite"
+	database "keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/testutil"
 )
 
-// newTestQueries opens an in-memory SQLite DB, applies the Goose migrations
-// (the schema source of truth), and returns the SQLC queries.
-func newTestQueries(t *testing.T) *Queries {
-	t.Helper()
-	goose.SetLogger(goose.NopLogger())
 
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		t.Fatalf("set goose dialect: %v", err)
-	}
-	dir := findMigrationsDir(t)
-	if err := goose.Up(db, dir); err != nil {
-		t.Fatalf("run goose migrations: %v", err)
-	}
-	return New(db)
-}
-
-func findMigrationsDir(t *testing.T) string {
-	t.Helper()
-	possible := []string{
-		"database/migrations",
-		filepath.Join("..", "..", "..", "database", "migrations"),
-	}
-	for _, p := range possible {
-		if info, err := os.Stat(p); err == nil && info.IsDir() {
-			return p
-		}
-	}
-	t.Fatalf("could not find migrations directory")
-	return ""
+// newTestQueries is a thin wrapper over testutil.NewTestDB; the shared schema
+// and migration setup lives in internal/testutil.
+func newTestQueries(t *testing.T) *database.Queries {
+	return testutil.NewTestDB(t)
 }
 
 func wantErrContaining(t *testing.T, err error, want string) {
@@ -62,7 +29,7 @@ func wantErrContaining(t *testing.T, err error, want string) {
 }
 
 // seedGame creates a game row, required by the access and interaction FKs.
-func seedGame(t *testing.T, ctx context.Context, q *Queries, name string) Game {
+func seedGame(t *testing.T, ctx context.Context, q *database.Queries, name string) database.Game {
 	t.Helper()
 	game, err := q.CreateGame(ctx, name)
 	if err != nil {
@@ -72,9 +39,9 @@ func seedGame(t *testing.T, ctx context.Context, q *Queries, name string) Game {
 }
 
 // seedPlayer creates a player row, required by the access FK.
-func seedPlayer(t *testing.T, ctx context.Context, q *Queries, username string) Player {
+func seedPlayer(t *testing.T, ctx context.Context, q *database.Queries, username string) database.Player {
 	t.Helper()
-	player, err := q.CreatePlayer(ctx, CreatePlayerParams{
+	player, err := q.CreatePlayer(ctx, database.CreatePlayerParams{
 		Name:           username,
 		Username:       username,
 		HashedPassword: "hash",
@@ -85,47 +52,27 @@ func seedPlayer(t *testing.T, ctx context.Context, q *Queries, username string) 
 	return player
 }
 
-// readGameNameByAccess reads a game's name through the production
-// access-granted fetching path (GrantPlayerAccess + ListPlayerGames). It
-// reports whether the game is visible to an authorized player.
-func readGameNameByAccess(t *testing.T, ctx context.Context, q *Queries, gameID int64) (string, bool) {
-	t.Helper()
-	player := seedPlayer(t, ctx, q, fmt.Sprintf("reader_%d", time.Now().UnixNano()))
-	if _, err := q.GrantPlayerAccess(ctx, GrantPlayerAccessParams{GameID: gameID, PlayerID: player.ID}); err != nil {
-		t.Fatalf("readGameNameByAccess: GrantPlayerAccess: %v", err)
-	}
-	games, err := q.ListPlayerGames(ctx, player.ID)
-	if err != nil {
-		t.Fatalf("readGameNameByAccess: ListPlayerGames: %v", err)
-	}
-	for _, g := range games {
-		if g.ID == gameID {
-			return g.Name, true
-		}
-	}
-	return "", false
-}
 
 func TestGameCRUD(t *testing.T) {
 	ctx := context.Background()
 	q := newTestQueries(t)
 
 	game := seedGame(t, ctx, q, "Alpha")
-	if name, ok := readGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Alpha" {
+	if name, ok := testutil.ReadGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Alpha" {
 		t.Fatalf("read after create: name=%q ok=%v, want Alpha", name, ok)
 	}
 
-	if err := q.UpdateGame(ctx, UpdateGameParams{ID: game.ID, Name: "Beta"}); err != nil {
+	if err := q.UpdateGame(ctx, database.UpdateGameParams{ID: game.ID, Name: "Beta"}); err != nil {
 		t.Fatalf("UpdateGame: %v", err)
 	}
-	if name, ok := readGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Beta" {
+	if name, ok := testutil.ReadGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Beta" {
 		t.Fatalf("read after update: name=%q ok=%v, want Beta", name, ok)
 	}
 
 	if err := q.DeleteGame(ctx, game.ID); err != nil {
 		t.Fatalf("DeleteGame: %v", err)
 	}
-	if _, ok := readGameNameByAccess(t, ctx, q, game.ID); ok {
+	if _, ok := testutil.ReadGameNameByAccess(t, ctx, q, game.ID); ok {
 		t.Fatal("ListPlayerGames found deleted game")
 	}
 }
@@ -138,11 +85,11 @@ func TestPlayerAccessLifecycle(t *testing.T) {
 	player := seedPlayer(t, ctx, q, "neo")
 
 	grant := func() error {
-		_, err := q.GrantPlayerAccess(ctx, GrantPlayerAccessParams{GameID: game.ID, PlayerID: player.ID})
+		_, err := q.GrantPlayerAccess(ctx, database.GrantPlayerAccessParams{GameID: game.ID, PlayerID: player.ID})
 		return err
 	}
 	hasAccess := func() bool {
-		ok, err := q.CheckPlayerAccess(ctx, CheckPlayerAccessParams{GameID: game.ID, PlayerID: player.ID})
+		ok, err := q.CheckPlayerAccess(ctx, database.CheckPlayerAccessParams{GameID: game.ID, PlayerID: player.ID})
 		if err != nil {
 			t.Fatalf("CheckPlayerAccess: %v", err)
 		}
@@ -167,7 +114,7 @@ func TestPlayerAccessLifecycle(t *testing.T) {
 		t.Fatalf("ListPlayerGames = %+v, want the granted game", games)
 	}
 
-	if err := q.RevokePlayerAccess(ctx, RevokePlayerAccessParams{GameID: game.ID, PlayerID: player.ID}); err != nil {
+	if err := q.RevokePlayerAccess(ctx, database.RevokePlayerAccessParams{GameID: game.ID, PlayerID: player.ID}); err != nil {
 		t.Fatalf("RevokePlayerAccess: %v", err)
 	}
 	if hasAccess() {
@@ -188,11 +135,11 @@ func TestStateMachine_ValidSequencePersists(t *testing.T) {
 	base := time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
 
 	insertSave(t, ctx, q, 1, 1, isoTime(base, 1), 60)
-	pause, err := q.PauseGame(ctx, PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)})
+	pause, err := q.PauseGame(ctx, database.PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)})
 	if err != nil {
 		t.Fatalf("PauseGame after save: %v", err)
 	}
-	resume, err := q.ResumeGame(ctx, ResumeGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 3)})
+	resume, err := q.ResumeGame(ctx, database.ResumeGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 3)})
 	if err != nil {
 		t.Fatalf("ResumeGame after pause: %v", err)
 	}
@@ -220,10 +167,10 @@ func TestStateMachine_RejectsSaveWhilePaused(t *testing.T) {
 	base := time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
 
 	insertSave(t, ctx, q, 1, 1, isoTime(base, 1), 60)
-	if _, err := q.PauseGame(ctx, PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)}); err != nil {
+	if _, err := q.PauseGame(ctx, database.PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)}); err != nil {
 		t.Fatalf("setup PauseGame: %v", err)
 	}
-	_, err := q.SaveGame(ctx, SaveGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 3), SavedBy: sql.NullInt64{Int64: 30, Valid: true}})
+	_, err := q.SaveGame(ctx, database.SaveGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 3), SavedBy: sql.NullInt64{Int64: 30, Valid: true}})
 	wantErrContaining(t, err, "cannot save while paused")
 }
 
@@ -234,7 +181,7 @@ func TestStateMachine_RejectsPauseWhenNotPlaying(t *testing.T) {
 
 	// A game with no prior interaction is "not_started"; pausing must be
 	// rejected by the state machine (not by schema validation).
-	_, err := q.PauseGame(ctx, PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 1)})
+	_, err := q.PauseGame(ctx, database.PauseGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 1)})
 	wantErrContaining(t, err, "cannot pause")
 }
 
@@ -244,13 +191,13 @@ func TestStateMachine_RejectsResumeWhenNotPaused(t *testing.T) {
 	base := time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
 
 	insertSave(t, ctx, q, 1, 1, isoTime(base, 1), 60)
-	_, err := q.ResumeGame(ctx, ResumeGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)})
+	_, err := q.ResumeGame(ctx, database.ResumeGameParams{GameID: 1, PlayerID: sql.NullInt64{Int64: 1, Valid: true}, OccurredAt: isoTime(base, 2)})
 	wantErrContaining(t, err, "cannot resume")
 }
 
-func insertSave(t *testing.T, ctx context.Context, q *Queries, gameID, playerID int64, occurredAt string, savedBy int64) Interaction {
+func insertSave(t *testing.T, ctx context.Context, q *database.Queries, gameID, playerID int64, occurredAt string, savedBy int64) database.Interaction {
 	t.Helper()
-	row, err := q.SaveGame(ctx, SaveGameParams{
+	row, err := q.SaveGame(ctx, database.SaveGameParams{
 		GameID:     gameID,
 		PlayerID:   sql.NullInt64{Int64: playerID, Valid: true},
 		OccurredAt: occurredAt,
