@@ -61,7 +61,9 @@ type DataFetching interface {
 	FirstInteraction(
 		ctx context.Context, gameId int64,
 	) (*database.Interaction, error)
-	// TODO: Last Game Interaction
+	LastInteraction(
+		ctx context.Context, gameId int64,
+	) (*database.Interaction, error)
 }
 
 type GameCommands interface {

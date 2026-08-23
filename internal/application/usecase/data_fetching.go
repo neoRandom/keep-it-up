@@ -141,3 +141,26 @@ func (uc *DataFetching) FirstInteraction(
 	}
 	return &interaction, nil
 }
+
+// LastInteraction returns the latest interaction of a game, or nil if the game
+// has no interactions yet (i.e. it has never been started).
+func (uc *DataFetching) LastInteraction(
+	ctx context.Context, gameId int64,
+) (*database.Interaction, error) {
+	if uc.q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+
+	if gameId < 1 {
+		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+	}
+
+	interaction, err := uc.q.LastInteraction(ctx, gameId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get last interaction for game %d: %w", gameId, err)
+	}
+	return &interaction, nil
+}

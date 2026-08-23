@@ -70,6 +70,10 @@ func (f *fakeFetch) FirstInteraction(ctx context.Context, gameId int64) (*databa
 	return f.interaction, f.err
 }
 
+func (f *fakeFetch) LastInteraction(ctx context.Context, gameId int64) (*database.Interaction, error) {
+	return f.interaction, f.err
+}
+
 type fakeCommands struct {
 	saveErr   error
 	resumeErr error

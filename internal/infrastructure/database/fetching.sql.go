@@ -32,6 +32,28 @@ func (q *Queries) FirstInteraction(ctx context.Context, gameID int64) (Interacti
 	return i, err
 }
 
+const lastInteraction = `-- name: LastInteraction :one
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE game_id = ?
+ORDER BY occurred_at DESC, id DESC
+LIMIT 1
+`
+
+func (q *Queries) LastInteraction(ctx context.Context, gameID int64) (Interaction, error) {
+	row := q.db.QueryRowContext(ctx, lastInteraction, gameID)
+	var i Interaction
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.PlayerID,
+		&i.Action,
+		&i.OccurredAt,
+		&i.SavedBy,
+	)
+	return i, err
+}
+
 const listInteractionsForReplay = `-- name: ListInteractionsForReplay :many
 SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions

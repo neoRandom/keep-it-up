@@ -177,6 +177,73 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 	})
 }
 
+func TestDataFetching_LastInteraction(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("nil queries", func(t *testing.T) {
+		uc := NewDataFetching(nil, newFixedClock())
+		_, err := uc.LastInteraction(ctx, 1)
+		requireErrContains(t, err, "not initialized")
+	})
+
+	for _, tt := range []struct {
+		name    string
+		gameID  int64
+		wantErr string
+	}{
+		{"invalid game id: zero", 0, "Invalid game ID"},
+		{"invalid game id: negative", -1, "Invalid game ID"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			_, err := uc.LastInteraction(ctx, tt.gameID)
+			requireErrContains(t, err, tt.wantErr)
+		})
+	}
+
+	t.Run("game with no interactions returns nil, no error", func(t *testing.T) {
+		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		interaction, err := uc.LastInteraction(ctx, 1)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if interaction != nil {
+			t.Errorf("expected nil interaction, got %+v", interaction)
+		}
+	})
+
+	t.Run("returns the latest interaction of the game", func(t *testing.T) {
+		q := newTestDB(t)
+		commands := NewGameCommands(q, newFixedClock())
+
+		// save (12:00:00), pause (12:00:01), resume (12:00:02), save (12:00:03).
+		if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
+			t.Fatalf("setup save 1: %v", err)
+		}
+		if err := commands.PauseGame(ctx, 5, 1); err != nil {
+			t.Fatalf("setup pause: %v", err)
+		}
+		if err := commands.ResumeGame(ctx, 5, 1); err != nil {
+			t.Fatalf("setup resume: %v", err)
+		}
+		if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
+			t.Fatalf("setup save 2: %v", err)
+		}
+
+		uc := NewDataFetching(q, newFixedClock())
+		interaction, err := uc.LastInteraction(ctx, 5)
+		if err != nil {
+			t.Fatalf("LastInteraction: %v", err)
+		}
+		if interaction == nil {
+			t.Fatal("expected non-nil interaction")
+		}
+		if interaction.Action != "saved" || interaction.OccurredAt != "2026-08-22T12:00:03Z" {
+			t.Errorf("last interaction = %+v, want the final save", interaction)
+		}
+	})
+}
+
 func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 	ctx := context.Background()
 
