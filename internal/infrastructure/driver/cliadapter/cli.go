@@ -93,7 +93,7 @@ func (c *CLI) Run(ctx context.Context, args []string) error {
 		return c.runPlayer(ctx, rest)
 	case "auth":
 		return c.runAuth(ctx, rest)
-	case "data":
+	case "fetch":
 		return c.runFetch(ctx, rest)
 	case "command":
 		return c.runCommand(ctx, rest)

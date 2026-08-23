@@ -180,10 +180,21 @@ func TestCLI_Run(t *testing.T) {
 			expectedErr: dummyErr,
 		},
 
+		// Fetch games subcommand test (locks in the documented `fetch` noun)
+		{
+			name: "fetch games success",
+			args: []string{"fetch", "games", "1"},
+			setupMocks: func(d *cliadapter.Deps) {
+				d.Fetch = &mockFetch{ListPlayerGamesFunc: func(ctx context.Context, playerID int64) ([]database.Game, error) {
+					return nil, nil
+				}}
+			},
+			expectedErr: nil,
+		},
 		// Fetch interactions subcommand tests
 		{
 			name: "fetch interactions without offset defaults offset to 0",
-			args: []string{"data", "interactions", "10", "5"},
+			args: []string{"fetch", "interactions", "10", "5"},
 			setupMocks: func(d *cliadapter.Deps) {
 				d.Fetch = &mockFetch{
 					ListInteractionsFunc: func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
@@ -201,7 +212,7 @@ func TestCLI_Run(t *testing.T) {
 		},
 		{
 			name: "fetch interactions with explicit offset",
-			args: []string{"data", "interactions", "10", "5", "20"},
+			args: []string{"fetch", "interactions", "10", "5", "20"},
 			setupMocks: func(d *cliadapter.Deps) {
 				d.Fetch = &mockFetch{
 					ListInteractionsFunc: func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
@@ -216,12 +227,12 @@ func TestCLI_Run(t *testing.T) {
 		},
 		{
 			name:        "fetch interactions with invalid offset",
-			args:        []string{"data", "interactions", "10", "5", "bad-offset"},
+			args:        []string{"fetch", "interactions", "10", "5", "bad-offset"},
 			expectedErr: errors.New("invalid offset"),
 		},
 		{
 			name:        "fetch interactions with too many args",
-			args:        []string{"data", "interactions", "10", "5", "0", "extra"},
+			args:        []string{"fetch", "interactions", "10", "5", "0", "extra"},
 			expectedErr: cliadapter.ErrWrongArgCount,
 		},
 	}

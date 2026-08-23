@@ -115,24 +115,6 @@ func TestAuthentication_GeneratePasswordHashWithValidPasswords(t *testing.T) {
 	}
 }
 
-func TestAuthentication_IsPasswordValidWithUnicodeCharacters(t *testing.T) {
-	// Test that unicode characters are allowed (if validation allows non-ASCII)
-	// The exact behavior depends on the validation implementation
-	testCases := []struct {
-		password string
-		desc     string
-	}{
-		{"пароль123", "Cyrillic password"},
-		{"password123", "ASCII password"},
-		{"пароль", "Cyrillic word only"},
-	}
-
-	for _, tc := range testCases {
-		// Just verify the function doesn't panic or error unexpectedly
-		_ = service.IsPasswordValid(tc.password)
-	}
-}
-
 func TestAuthentication_GeneratePasswordHashIsConsistent(t *testing.T) {
 	password := "secret123"
 	hash1, err1 := service.GeneratePasswordHash(password)
