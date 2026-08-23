@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listInteractionsForReplay = `-- name: ListInteractionsForReplay :many
@@ -65,6 +66,43 @@ func (q *Queries) ListPlayerGames(ctx context.Context, playerID int64) ([]Game, 
 	for rows.Next() {
 		var i Game
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlayerInteractions = `-- name: ListPlayerInteractions :many
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE player_id = ?
+ORDER BY occurred_at DESC, id DESC
+`
+
+func (q *Queries) ListPlayerInteractions(ctx context.Context, playerID sql.NullInt64) ([]Interaction, error) {
+	rows, err := q.db.QueryContext(ctx, listPlayerInteractions, playerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Interaction
+	for rows.Next() {
+		var i Interaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.PlayerID,
+			&i.Action,
+			&i.OccurredAt,
+			&i.SavedBy,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

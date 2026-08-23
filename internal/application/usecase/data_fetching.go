@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
@@ -91,6 +92,29 @@ func (uc *DataFetching) ListInteractions(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list interactions for game %d: %w", gameId, err)
+	}
+	return interactions, nil
+}
+
+// ListPlayerInteractions returns the interactions a player made across all
+// games, newest first.
+func (uc *DataFetching) ListPlayerInteractions(
+	ctx context.Context, playerId int64,
+) ([]database.Interaction, error) {
+	if uc.q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+
+	if playerId < 1 {
+		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
+	}
+
+	interactions, err := uc.q.ListPlayerInteractions(
+		ctx,
+		sql.NullInt64{Int64: playerId, Valid: true},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interactions for player %d: %w", playerId, err)
 	}
 	return interactions, nil
 }

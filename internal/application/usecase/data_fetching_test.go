@@ -110,6 +110,79 @@ func TestDataFetching_GetSharedData(t *testing.T) {
 	})
 }
 
+func TestDataFetching_ListPlayerInteractions(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("nil queries", func(t *testing.T) {
+		uc := NewDataFetching(nil, newFixedClock())
+		_, err := uc.ListPlayerInteractions(ctx, 1)
+		requireErrContains(t, err, "not initialized")
+	})
+
+	for _, tt := range []struct {
+		name     string
+		playerID int64
+		wantErr  string
+	}{
+		{"invalid player id: zero", 0, "Invalid player ID"},
+		{"invalid player id: negative", -1, "Invalid player ID"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			_, err := uc.ListPlayerInteractions(ctx, tt.playerID)
+			requireErrContains(t, err, tt.wantErr)
+		})
+	}
+
+	t.Run("player with no interactions returns empty, no error", func(t *testing.T) {
+		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		interactions, err := uc.ListPlayerInteractions(ctx, 1)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(interactions) != 0 {
+			t.Errorf("expected no interactions, got %v", interactions)
+		}
+	})
+
+	t.Run("returns only the given player's interactions, newest first", func(t *testing.T) {
+		q := newTestDB(t)
+		commands := NewGameCommands(q, newFixedClock())
+
+		// Player 1 performs a save on game 1, then player 2 on game 2, then
+		// player 1 again on game 3. The fixed clock advances one second per
+		// call, so timestamps are strictly increasing.
+		if err := commands.SaveGame(ctx, 1, 1, 60); err != nil {
+			t.Fatalf("setup save 1: %v", err)
+		}
+		if err := commands.SaveGame(ctx, 2, 2, 60); err != nil {
+			t.Fatalf("setup save 2: %v", err)
+		}
+		if err := commands.SaveGame(ctx, 3, 1, 60); err != nil {
+			t.Fatalf("setup save 3: %v", err)
+		}
+
+		uc := NewDataFetching(q, newFixedClock())
+		interactions, err := uc.ListPlayerInteractions(ctx, 1)
+		if err != nil {
+			t.Fatalf("ListPlayerInteractions: %v", err)
+		}
+		if len(interactions) != 2 {
+			t.Fatalf("len = %d, want 2 (player 1's only)", len(interactions))
+		}
+		// Newest first: game 3 was saved after game 1.
+		if interactions[0].GameID != 3 {
+			t.Errorf("interactions[0].GameID = %d, want 3 (newest first)", interactions[0].GameID)
+		}
+		if interactions[1].GameID != 1 {
+			t.Errorf("interactions[1].GameID = %d, want 1", interactions[1].GameID)
+		}
+		if interactions[0].PlayerID.Int64 != 1 || interactions[1].PlayerID.Int64 != 1 {
+			t.Errorf("expected only player 1's interactions, got %+v", interactions)
+		}
+	})
+}
+
 func TestDataFetching_ListInteractions(t *testing.T) {
 	ctx := context.Background()
 
