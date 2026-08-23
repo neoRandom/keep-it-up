@@ -55,3 +55,9 @@ POST  /save         game ID + duration in seconds → add save interaction
 POST  /play         game ID → start or resume the game
 POST  /pause        game ID → pause the game
 ```
+
+The mutation endpoints (`/login`, `/save`, `/play`, `/pause`) accept an optional
+`Idempotency-Key` header. Sending the same key twice returns the cached result of
+the first request instead of executing it again; a key currently being processed
+returns `409 Conflict`.
+

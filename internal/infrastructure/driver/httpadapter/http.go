@@ -29,10 +29,32 @@ type HTTPAdapter struct {
 	jwtSecret string
 	tp        port.TimeProvider
 	d         Deps
+
+	idem       IdempotencyStore
+	idemTTL    time.Duration
+	idemHeader string
 }
 
-func New(addr string, jwtSecret string, tp port.TimeProvider, d Deps) *HTTPAdapter {
-	return &HTTPAdapter{addr: addr, jwtSecret: jwtSecret, tp: tp, d: d}
+// Option configures an HTTPAdapter. Kept separate from the constructor so the
+// idempotency wiring stays optional and existing call sites are unchanged.
+type Option func(*HTTPAdapter)
+
+// WithIdempotency enables idempotency enforcement using the given store, TTL,
+// and header name. When omitted the adapter runs without idempotency handling.
+func WithIdempotency(store IdempotencyStore, ttl time.Duration, header string) Option {
+	return func(h *HTTPAdapter) {
+		h.idem = store
+		h.idemTTL = ttl
+		h.idemHeader = header
+	}
+}
+
+func New(addr string, jwtSecret string, tp port.TimeProvider, d Deps, opts ...Option) *HTTPAdapter {
+	h := &HTTPAdapter{addr: addr, jwtSecret: jwtSecret, tp: tp, d: d}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
 }
 
 // Run serves the HTTP API until ctx is cancelled, then shuts down gracefully.
@@ -64,8 +86,10 @@ func (h *HTTPAdapter) Run(ctx context.Context) error {
 // routes wires middleware and handlers. Separate from Run so handlers can be
 // unit-tested with Echo's test helpers.
 func (h *HTTPAdapter) routes(e *echo.Echo) {
+	idem := h.idempotency
+
 	unprotected := e.Group("/api")
-	unprotected.POST("/login", h.handleLogin)
+	unprotected.POST("/login", h.handleLogin, idem)
 
 	api := unprotected.Group("")
 	api.Use(echojwt.WithConfig(echojwt.Config{
@@ -84,7 +108,7 @@ func (h *HTTPAdapter) routes(e *echo.Echo) {
 	api.GET("/games", h.handleListGames)
 	api.GET("/shared", h.handleGetShared)
 	api.GET("/interactions", h.handleListInteractions)
-	api.POST("/save", h.handleSave)
-	api.POST("/play", h.handleResume)
-	api.POST("/pause", h.handlePause)
+	api.POST("/save", h.handleSave, idem)
+	api.POST("/play", h.handleResume, idem)
+	api.POST("/pause", h.handlePause, idem)
 }
