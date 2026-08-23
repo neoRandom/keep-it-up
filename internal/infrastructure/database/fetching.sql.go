@@ -128,15 +128,23 @@ SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions
 WHERE game_id = ? AND player_id = ?
 ORDER BY occurred_at DESC, id DESC
+LIMIT ? OFFSET ?
 `
 
 type ListPlayerInteractionsParams struct {
 	GameID   int64
 	PlayerID sql.NullInt64
+	Limit    int64
+	Offset   int64
 }
 
 func (q *Queries) ListPlayerInteractions(ctx context.Context, arg ListPlayerInteractionsParams) ([]Interaction, error) {
-	rows, err := q.db.QueryContext(ctx, listPlayerInteractions, arg.GameID, arg.PlayerID)
+	rows, err := q.db.QueryContext(ctx, listPlayerInteractions,
+		arg.GameID,
+		arg.PlayerID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

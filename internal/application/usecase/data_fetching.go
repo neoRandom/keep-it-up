@@ -102,9 +102,9 @@ func (uc *DataFetching) ListInteractions(
 }
 
 // ListPlayerInteractions returns the interactions a player made in a specific
-// game, newest first.
+// game, newest first, limited and paginated by offset.
 func (uc *DataFetching) ListPlayerInteractions(
-	ctx context.Context, gameId, playerId int64,
+	ctx context.Context, gameId, playerId, limit, offset int64,
 ) ([]database.Interaction, error) {
 	if uc.q == nil {
 		return nil, errors.New("database queries are not initialized")
@@ -118,11 +118,21 @@ func (uc *DataFetching) ListPlayerInteractions(
 		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
 	}
 
+	if limit < 0 {
+		return nil, errors.New("query limit cannot be less than 0")
+	}
+
+	if offset < 0 {
+		return nil, errors.New("query offset cannot be less than 0")
+	}
+
 	interactions, err := uc.q.ListPlayerInteractions(
 		ctx,
 		database.ListPlayerInteractionsParams{
 			GameID:   gameId,
 			PlayerID: sql.NullInt64{Int64: playerId, Valid: true},
+			Limit:    limit,
+			Offset:   offset,
 		},
 	)
 	if err != nil {
