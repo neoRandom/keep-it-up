@@ -160,7 +160,7 @@ func TestCLI_Run(t *testing.T) {
 				}
 			},
 			expectedErr:    nil,
-			expectedStdout: "game 10 saved by player 20 for 300 min\n",
+			expectedStdout: "game 10 saved by player 20 for 300 sec\n",
 		},
 		{
 			name:        "command save with invalid timestamp",

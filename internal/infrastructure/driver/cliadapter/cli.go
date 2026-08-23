@@ -466,7 +466,7 @@ func (c *CLI) runCommand(ctx context.Context, args []string) error {
 		if err := c.d.Commands.SaveGame(ctx, gameID, playerID, duration); err != nil {
 			return fmt.Errorf("command save: %w", err)
 		}
-		fmt.Fprintf(c.d.Stdout, "game %d saved by player %d for %d min\n", gameID, playerID, duration)
+		fmt.Fprintf(c.d.Stdout, "game %d saved by player %d for %d sec\n", gameID, playerID, duration)
 		return nil
 
 	case "resume":
