@@ -34,7 +34,7 @@ type mockFetch struct {
 	ListPlayerGamesFunc      func(ctx context.Context, playerID int64) ([]database.Game, error)
 	GetSharedDataFunc        func(ctx context.Context, gameID int64) (*model.SharedData, error)
 	ListInteractionsFunc     func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error)
-	ListPlayerInteractionsFunc func(ctx context.Context, gameID, playerID int64) ([]database.Interaction, error)
+	ListPlayerInteractionsFunc func(ctx context.Context, gameID, playerID, limit, offset int64) ([]database.Interaction, error)
 	FirstInteractionFunc     func(ctx context.Context, gameID int64) (*database.Interaction, error)
 	LastInteractionFunc      func(ctx context.Context, gameID int64) (*database.Interaction, error)
 }
@@ -48,8 +48,8 @@ func (m *mockFetch) GetSharedData(ctx context.Context, gameID int64) (*model.Sha
 func (m *mockFetch) ListInteractions(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
 	return m.ListInteractionsFunc(ctx, gameID, limit, offset)
 }
-func (m *mockFetch) ListPlayerInteractions(ctx context.Context, gameID, playerID int64) ([]database.Interaction, error) {
-	return m.ListPlayerInteractionsFunc(ctx, gameID, playerID)
+func (m *mockFetch) ListPlayerInteractions(ctx context.Context, gameID, playerID, limit, offset int64) ([]database.Interaction, error) {
+	return m.ListPlayerInteractionsFunc(ctx, gameID, playerID, limit, offset)
 }
 func (m *mockFetch) FirstInteraction(ctx context.Context, gameID int64) (*database.Interaction, error) {
 	return m.FirstInteractionFunc(ctx, gameID)
