@@ -41,7 +41,7 @@ Nouns:
            check-passwd    <username> <password>
   fetch    games        <player id>
            shared       <game id>
-           interactions <game id> <limit>
+           interactions <game id> <limit> <offset>
   command  save   <game id> <player id> <duration in seconds>
            resume <game id> <player id>
            pause  <game id> <player id>
@@ -403,8 +403,8 @@ func (c *CLI) runFetch(ctx context.Context, args []string) error {
 		return nil
 
 	case "interactions":
-		if len(rest) != 2 {
-			return wrongArgs("fetch interactions", "fetch interactions <game id> <limit>")
+		if len(rest) < 2 || len(rest) > 3 {
+			return wrongArgs("fetch interactions", "fetch interactions <game id> <limit> <offset>")
 		}
 		gameID, err := parseID(rest[0])
 		if err != nil {
@@ -414,7 +414,14 @@ func (c *CLI) runFetch(ctx context.Context, args []string) error {
 		if err != nil {
 			return fmt.Errorf("fetch interactions: invalid limit %q: %w", rest[1], err)
 		}
-		interactions, err := c.d.Fetch.ListInteractions(ctx, gameID, limit, 0)
+		var offset int64
+		if len(rest) == 3 {
+			offset, err = strconv.ParseInt(rest[2], 10, 64)
+			if err != nil {
+				return fmt.Errorf("fetch interactions: invalid offset %q: %w", rest[2], err)
+			}
+		}
+		interactions, err := c.d.Fetch.ListInteractions(ctx, gameID, limit, offset)
 		if err != nil {
 			return fmt.Errorf("fetch interactions: %w", err)
 		}

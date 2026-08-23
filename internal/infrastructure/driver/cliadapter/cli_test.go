@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driver/cliadapter"
 )
@@ -27,6 +28,34 @@ func (m *mockGames) UpdateGame(ctx context.Context, id int64, name string) error
 }
 func (m *mockGames) DeleteGame(ctx context.Context, id int64) error {
 	return m.DeleteGameFunc(ctx, id)
+}
+
+type mockFetch struct {
+	ListPlayerGamesFunc      func(ctx context.Context, playerID int64) ([]database.Game, error)
+	GetSharedDataFunc        func(ctx context.Context, gameID int64) (*model.SharedData, error)
+	ListInteractionsFunc     func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error)
+	ListPlayerInteractionsFunc func(ctx context.Context, gameID, playerID int64) ([]database.Interaction, error)
+	FirstInteractionFunc     func(ctx context.Context, gameID int64) (*database.Interaction, error)
+	LastInteractionFunc      func(ctx context.Context, gameID int64) (*database.Interaction, error)
+}
+
+func (m *mockFetch) ListPlayerGames(ctx context.Context, playerID int64) ([]database.Game, error) {
+	return m.ListPlayerGamesFunc(ctx, playerID)
+}
+func (m *mockFetch) GetSharedData(ctx context.Context, gameID int64) (*model.SharedData, error) {
+	return m.GetSharedDataFunc(ctx, gameID)
+}
+func (m *mockFetch) ListInteractions(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
+	return m.ListInteractionsFunc(ctx, gameID, limit, offset)
+}
+func (m *mockFetch) ListPlayerInteractions(ctx context.Context, gameID, playerID int64) ([]database.Interaction, error) {
+	return m.ListPlayerInteractionsFunc(ctx, gameID, playerID)
+}
+func (m *mockFetch) FirstInteraction(ctx context.Context, gameID int64) (*database.Interaction, error) {
+	return m.FirstInteractionFunc(ctx, gameID)
+}
+func (m *mockFetch) LastInteraction(ctx context.Context, gameID int64) (*database.Interaction, error) {
+	return m.LastInteractionFunc(ctx, gameID)
 }
 
 type mockCommands struct {
@@ -149,6 +178,51 @@ func TestCLI_Run(t *testing.T) {
 				}
 			},
 			expectedErr: dummyErr,
+		},
+
+		// Fetch interactions subcommand tests
+		{
+			name: "fetch interactions without offset defaults offset to 0",
+			args: []string{"data", "interactions", "10", "5"},
+			setupMocks: func(d *cliadapter.Deps) {
+				d.Fetch = &mockFetch{
+					ListInteractionsFunc: func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
+						if gameID != 10 || limit != 5 || offset != 0 {
+							t.Errorf("unexpected args: gameID=%d limit=%d offset=%d", gameID, limit, offset)
+						}
+						return []database.Interaction{
+							{ID: 1, GameID: 10, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"},
+						}, nil
+					},
+				}
+			},
+			expectedErr:    nil,
+			expectedStdout: "{ID:1",
+		},
+		{
+			name: "fetch interactions with explicit offset",
+			args: []string{"data", "interactions", "10", "5", "20"},
+			setupMocks: func(d *cliadapter.Deps) {
+				d.Fetch = &mockFetch{
+					ListInteractionsFunc: func(ctx context.Context, gameID, limit, offset int64) ([]database.Interaction, error) {
+						if gameID != 10 || limit != 5 || offset != 20 {
+							t.Errorf("unexpected args: gameID=%d limit=%d offset=%d", gameID, limit, offset)
+						}
+						return nil, nil
+					},
+				}
+			},
+			expectedErr:    nil,
+		},
+		{
+			name:        "fetch interactions with invalid offset",
+			args:        []string{"data", "interactions", "10", "5", "bad-offset"},
+			expectedErr: errors.New("invalid offset"),
+		},
+		{
+			name:        "fetch interactions with too many args",
+			args:        []string{"data", "interactions", "10", "5", "0", "extra"},
+			expectedErr: cliadapter.ErrWrongArgCount,
 		},
 	}
 
