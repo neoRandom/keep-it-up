@@ -58,7 +58,9 @@ type DataFetching interface {
 	ListPlayerInteractions(
 		ctx context.Context, playerId int64,
 	) ([]database.Interaction, error)
-	// TODO: First Game Interaction
+	FirstInteraction(
+		ctx context.Context, gameId int64,
+	) (*database.Interaction, error)
 	// TODO: Last Game Interaction
 }
 

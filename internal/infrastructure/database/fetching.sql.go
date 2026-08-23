@@ -10,6 +10,28 @@ import (
 	"database/sql"
 )
 
+const firstInteraction = `-- name: FirstInteraction :one
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE game_id = ?
+ORDER BY occurred_at ASC, id ASC
+LIMIT 1
+`
+
+func (q *Queries) FirstInteraction(ctx context.Context, gameID int64) (Interaction, error) {
+	row := q.db.QueryRowContext(ctx, firstInteraction, gameID)
+	var i Interaction
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.PlayerID,
+		&i.Action,
+		&i.OccurredAt,
+		&i.SavedBy,
+	)
+	return i, err
+}
+
 const listInteractionsForReplay = `-- name: ListInteractionsForReplay :many
 SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions
