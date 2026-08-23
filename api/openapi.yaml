@@ -58,11 +58,34 @@ paths:
 
   /interactions:
     get:
-      summary: Get recent interactions
+      summary: Get interactions for a game
+      description: |
+        Returns interactions for the given game, scoped by the `query` parameter.
+        - `all`: all interactions for the game, newest first (the legacy behavior).
+        - `player`: interactions performed by the authenticated player in the game.
+        - `first`: the earliest interaction of the game, or `null` if the game has none.
+        - `last`: the latest interaction of the game, or `null` if the game has none.
       security:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/GameId'
+        - name: query
+          in: query
+          required: false
+          description: |
+            Which interactions to return.
+            - `all`: all interactions for the game (default).
+            - `player`: only the authenticated player's interactions in the game.
+            - `first`: the single earliest interaction of the game.
+            - `last`: the single latest interaction of the game.
+          schema:
+            type: string
+            enum:
+              - all
+              - player
+              - first
+              - last
+            default: all
         - name: limit
           in: query
           required: false
@@ -70,15 +93,30 @@ paths:
             type: integer
             minimum: 1
             default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         '200':
-          description: The latest interactions for the game.
+          description: |
+            The requested interactions. `all` and `player` return an array of
+            Interaction objects; `first` and `last` return a single Interaction
+            object (or `null` when the game has no interactions).
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Interaction'
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Interaction'
+                  - $ref: '#/components/schemas/Interaction'
+                  - type: 'null'
+        '400':
+          description: Invalid query or offset parameter.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

@@ -31,12 +31,12 @@ func TestGameManagement_UpdateGame(t *testing.T) {
 		t.Fatalf("UpdateGame() returned error: %v", err)
 	}
 
-	updated, err := uc.q.GetGame(ctx, created.ID)
-	if err != nil {
-		t.Fatalf("GetGame() returned error after update: %v", err)
+	name, ok := readGameNameByAccess(t, ctx, uc.q, created.ID)
+	if !ok {
+		t.Fatal("game not readable after update")
 	}
-	if updated.Name != "Bravo" {
-		t.Fatalf("GetGame() name = %q, want %q", updated.Name, "Bravo")
+	if name != "Bravo" {
+		t.Fatalf("game name = %q, want %q", name, "Bravo")
 	}
 }
 
@@ -104,8 +104,8 @@ func TestGameManagement_DeleteGame(t *testing.T) {
 		t.Fatalf("DeleteGame() returned error: %v", err)
 	}
 
-	if _, err := queries.GetGame(ctx, created.ID); err == nil {
-		t.Fatal("GetGame() found deleted game")
+	if _, ok := readGameNameByAccess(t, ctx, uc.q, created.ID); ok {
+		t.Fatal("readGameNameByAccess() found deleted game")
 	}
 }
 
@@ -137,12 +137,12 @@ func TestGameManagement_SuccessfulCRUDOperations(t *testing.T) {
 	gameID := created.ID
 
 	// Read by fetching
-	fetched, err := uc.q.GetGame(ctx, gameID)
-	if err != nil {
-		t.Fatalf("GetGame() returned error: %v", err)
+	name, ok := readGameNameByAccess(t, ctx, uc.q, gameID)
+	if !ok {
+		t.Fatal("game not readable after create")
 	}
-	if fetched.Name != "TestGame" {
-		t.Fatalf("GetGame() returned wrong name: %q, want %q", fetched.Name, "TestGame")
+	if name != "TestGame" {
+		t.Fatalf("game name = %q, want %q", name, "TestGame")
 	}
 
 	// Update
@@ -151,12 +151,12 @@ func TestGameManagement_SuccessfulCRUDOperations(t *testing.T) {
 	}
 
 	// Verify update
-	updated, err := uc.q.GetGame(ctx, gameID)
-	if err != nil {
-		t.Fatalf("GetGame() returned error after update: %v", err)
+	name, ok = readGameNameByAccess(t, ctx, uc.q, gameID)
+	if !ok {
+		t.Fatal("game not readable after update")
 	}
-	if updated.Name != "UpdatedGame" {
-		t.Fatalf("GetGame() returned wrong name after update: %q, want %q", updated.Name, "UpdatedGame")
+	if name != "UpdatedGame" {
+		t.Fatalf("game name after update = %q, want %q", name, "UpdatedGame")
 	}
 
 	// Delete
@@ -165,8 +165,8 @@ func TestGameManagement_SuccessfulCRUDOperations(t *testing.T) {
 	}
 
 	// Verify deletion
-	if _, err := uc.q.GetGame(ctx, gameID); err == nil {
-		t.Fatal("GetGame() found game after DeleteGame()")
+	if _, ok := readGameNameByAccess(t, ctx, uc.q, gameID); ok {
+		t.Fatal("readGameNameByAccess() found game after DeleteGame()")
 	}
 }
 
@@ -337,12 +337,12 @@ func TestGameManagement_SuccessfulGameOperationSequence(t *testing.T) {
 
 	// Verify updates
 	for i, expectedName := range updatedNames {
-		game, err := uc.q.GetGame(ctx, games[i])
-		if err != nil {
-			t.Fatalf("GetGame(%d) returned error: %v", games[i], err)
+		name, ok := readGameNameByAccess(t, ctx, uc.q, games[i])
+		if !ok {
+			t.Fatalf("game %d not readable after update", games[i])
 		}
-		if game.Name != expectedName {
-			t.Fatalf("GetGame(%d) returned wrong name: %q, want %q", games[i], game.Name, expectedName)
+		if name != expectedName {
+			t.Fatalf("game %d returned wrong name: %q, want %q", games[i], name, expectedName)
 		}
 	}
 
@@ -355,9 +355,8 @@ func TestGameManagement_SuccessfulGameOperationSequence(t *testing.T) {
 
 	// Verify deletions
 	for _, id := range games {
-		_, err := uc.q.GetGame(ctx, id)
-		if err == nil {
-			t.Fatalf("GetGame(%d) should fail after DeleteGame()", id)
+		if _, ok := readGameNameByAccess(t, ctx, uc.q, id); ok {
+			t.Fatalf("game %d should be unreadable after DeleteGame()", id)
 		}
 	}
 }

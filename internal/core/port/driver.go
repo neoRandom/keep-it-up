@@ -53,11 +53,17 @@ type DataFetching interface {
 		ctx context.Context, gameId int64,
 	) (*model.SharedData, error)
 	ListInteractions(
-		ctx context.Context, gameId, limit int64,
+		ctx context.Context, gameId, limit, offset int64,
 	) ([]database.Interaction, error)
-	// TODO: List Player Interactions
-	// TODO: First Interaction
-	// TODO: Last Interaction
+	ListPlayerInteractions(
+		ctx context.Context, gameId, playerId, limit, offset int64,
+	) ([]database.Interaction, error)
+	FirstInteraction(
+		ctx context.Context, gameId int64,
+	) (*database.Interaction, error)
+	LastInteraction(
+		ctx context.Context, gameId int64,
+	) (*database.Interaction, error)
 }
 
 type GameCommands interface {

@@ -35,7 +35,7 @@ Nouns:
            check-passwd    <username> <password>
   fetch    games        <player id>
            shared       <game id>
-           interactions <game id> <limit>
+           interactions <game id> <limit> <offset>
   command  save   <game id> <player id> <duration in seconds>
            resume <game id> <player id>
            pause  <game id> <player id>

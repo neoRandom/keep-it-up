@@ -9,11 +9,11 @@ import (
 
 func IsPasswordValid(password string) error {
 	if strings.ContainsRune(password, ' ') {
-		return fmt.Errorf("Password cannot have whitespaces")
+		return fmt.Errorf("password cannot have whitespaces")
 	}
 
 	if len(password) < 6 {
-		return fmt.Errorf("Password cannot have less than 6 characters")
+		return fmt.Errorf("password cannot have less than 6 characters")
 	}
 
 	return nil

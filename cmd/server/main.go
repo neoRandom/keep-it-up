@@ -6,16 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"keep-it-up/internal/application/usecase"
-	"keep-it-up/internal/infrastructure/constant"
+	"keep-it-up/internal/infrastructure/config"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/infrastructure/driver/httpadapter"
-	"keep-it-up/internal/infrastructure/util"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 
 	_ "modernc.org/sqlite"
@@ -29,29 +27,15 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	util.LoadEnv(constant.EnvFilename)
-
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Println("failed to get JWT secret")
-		return 1
-	}
-
-	addr := os.Getenv("SERVER_ADDRESS")
-	if addr == "" {
-		log.Println("failed to get server address")
-		return 1
-	}
-
-	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
+	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("failed to get dbstring absolute path: %v\n", err)
+		log.Printf("failed to load configuration: %v", err)
 		return 1
 	}
 
 	sqlDB, err := sql.Open("sqlite", fmt.Sprintf(
 		"file:%s?mode=rw",
-		dbString,
+		cfg.DBString,
 	))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open database: %v\n", err)
@@ -79,7 +63,7 @@ func run() int {
 		Auth: usecase.NewAuthentication(
 			q,
 			&driven.JwtTokenGenerator{
-				JwtSecret:    jwtSecret,
+				JwtSecret:    cfg.JWTSecret,
 				TimeProvider: timeProvider,
 			},
 		),
@@ -89,8 +73,8 @@ func run() int {
 	}
 
 	adapter := httpadapter.New(
-		addr,
-		jwtSecret,
+		cfg.ServerAddress,
+		cfg.JWTSecret,
 		timeProvider,
 		deps,
 	)
@@ -99,7 +83,7 @@ func run() int {
 	errCh := make(chan error, 1)
 
 	wg.Go(func() {
-		log.Printf("Starting server on %s...\n", addr)
+		log.Printf("Starting server on %s...\n", cfg.ServerAddress)
 		if err := adapter.Run(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			wrappedErr := fmt.Errorf(
 				"server failed to start or stopped unexpectedly: %w",

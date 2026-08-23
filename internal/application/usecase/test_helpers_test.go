@@ -1,10 +1,13 @@
 package usecase
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"keep-it-up/internal/infrastructure/database"
 
@@ -67,4 +70,34 @@ func newTestDB(t *testing.T) *database.Queries {
 	})
 
 	return database.New(db)
+}
+
+// readGameNameByAccess reads a game's name through the production fetching
+// path (GrantPlayerAccess + ListPlayerGames), reporting whether the game is
+// visible to an authorized player. Using the access-scoped readback keeps the
+// test suite exercising real production queries rather than a now-removed
+// GetGame helper.
+func readGameNameByAccess(t *testing.T, ctx context.Context, q *database.Queries, gameID int64) (string, bool) {
+	t.Helper()
+	player, err := q.CreatePlayer(ctx, database.CreatePlayerParams{
+		Name:           fmt.Sprintf("reader_%d", time.Now().UnixNano()),
+		Username:       fmt.Sprintf("reader_%d", time.Now().UnixNano()),
+		HashedPassword: "hash",
+	})
+	if err != nil {
+		t.Fatalf("readGameNameByAccess: CreatePlayer: %v", err)
+	}
+	if _, err := q.GrantPlayerAccess(ctx, database.GrantPlayerAccessParams{GameID: gameID, PlayerID: player.ID}); err != nil {
+		t.Fatalf("readGameNameByAccess: GrantPlayerAccess: %v", err)
+	}
+	games, err := q.ListPlayerGames(ctx, player.ID)
+	if err != nil {
+		t.Fatalf("readGameNameByAccess: ListPlayerGames: %v", err)
+	}
+	for _, g := range games {
+		if g.ID == gameID {
+			return g.Name, true
+		}
+	}
+	return "", false
 }

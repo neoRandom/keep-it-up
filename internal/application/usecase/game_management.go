@@ -24,7 +24,7 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 
 	if len(name) < 3 {
 		return database.Game{}, fmt.Errorf(
-			"Game name cannot have less than 3 characters: '%s'",
+			"game name cannot have less than 3 characters: '%s'",
 			name,
 		)
 	}
@@ -42,14 +42,14 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 	}
 
 	if id < 1 {
-		return fmt.Errorf("Invalid game ID: %d", id)
+		return fmt.Errorf("invalid game ID: %d", id)
 	}
 
 	name = strings.TrimSpace(name)
 
 	if len(name) < 3 {
 		return fmt.Errorf(
-			"New game name cannot have less than 3 characters: '%s'",
+			"new game name cannot have less than 3 characters: '%s'",
 			name,
 		)
 	}
@@ -69,7 +69,7 @@ func (uc *GameManagement) DeleteGame(ctx context.Context, id int64) error {
 	}
 
 	if id < 1 {
-		return fmt.Errorf("Invalid game ID: %d", id)
+		return fmt.Errorf("invalid game ID: %d", id)
 	}
 
 	if err := uc.q.DeleteGame(ctx, id); err != nil {

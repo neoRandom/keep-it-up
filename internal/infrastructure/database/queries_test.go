@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,29 +85,48 @@ func seedPlayer(t *testing.T, ctx context.Context, q *Queries, username string) 
 	return player
 }
 
+// readGameNameByAccess reads a game's name through the production
+// access-granted fetching path (GrantPlayerAccess + ListPlayerGames). It
+// reports whether the game is visible to an authorized player.
+func readGameNameByAccess(t *testing.T, ctx context.Context, q *Queries, gameID int64) (string, bool) {
+	t.Helper()
+	player := seedPlayer(t, ctx, q, fmt.Sprintf("reader_%d", time.Now().UnixNano()))
+	if _, err := q.GrantPlayerAccess(ctx, GrantPlayerAccessParams{GameID: gameID, PlayerID: player.ID}); err != nil {
+		t.Fatalf("readGameNameByAccess: GrantPlayerAccess: %v", err)
+	}
+	games, err := q.ListPlayerGames(ctx, player.ID)
+	if err != nil {
+		t.Fatalf("readGameNameByAccess: ListPlayerGames: %v", err)
+	}
+	for _, g := range games {
+		if g.ID == gameID {
+			return g.Name, true
+		}
+	}
+	return "", false
+}
+
 func TestGameCRUD(t *testing.T) {
 	ctx := context.Background()
 	q := newTestQueries(t)
 
 	game := seedGame(t, ctx, q, "Alpha")
-	got, err := q.GetGame(ctx, game.ID)
-	if err != nil || got.Name != "Alpha" {
-		t.Fatalf("GetGame: got %+v, err %v", got, err)
+	if name, ok := readGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Alpha" {
+		t.Fatalf("read after create: name=%q ok=%v, want Alpha", name, ok)
 	}
 
 	if err := q.UpdateGame(ctx, UpdateGameParams{ID: game.ID, Name: "Beta"}); err != nil {
 		t.Fatalf("UpdateGame: %v", err)
 	}
-	got, _ = q.GetGame(ctx, game.ID)
-	if got.Name != "Beta" {
-		t.Fatalf("after update, name = %q, want Beta", got.Name)
+	if name, ok := readGameNameByAccess(t, ctx, q, game.ID); !ok || name != "Beta" {
+		t.Fatalf("read after update: name=%q ok=%v, want Beta", name, ok)
 	}
 
 	if err := q.DeleteGame(ctx, game.ID); err != nil {
 		t.Fatalf("DeleteGame: %v", err)
 	}
-	if _, err := q.GetGame(ctx, game.ID); err == nil {
-		t.Fatal("GetGame found deleted game")
+	if _, ok := readGameNameByAccess(t, ctx, q, game.ID); ok {
+		t.Fatal("ListPlayerGames found deleted game")
 	}
 }
 

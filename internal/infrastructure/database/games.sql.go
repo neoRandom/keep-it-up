@@ -32,21 +32,6 @@ func (q *Queries) DeleteGame(ctx context.Context, id int64) error {
 	return err
 }
 
-const getGame = `-- name: GetGame :one
-SELECT
-    id,
-    name
-FROM games
-WHERE id = ?
-`
-
-func (q *Queries) GetGame(ctx context.Context, id int64) (Game, error) {
-	row := q.db.QueryRowContext(ctx, getGame, id)
-	var i Game
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
 const updateGame = `-- name: UpdateGame :exec
 UPDATE games
 SET name = ?

@@ -7,7 +7,52 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
+
+const firstInteraction = `-- name: FirstInteraction :one
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE game_id = ?
+ORDER BY occurred_at ASC, id ASC
+LIMIT 1
+`
+
+func (q *Queries) FirstInteraction(ctx context.Context, gameID int64) (Interaction, error) {
+	row := q.db.QueryRowContext(ctx, firstInteraction, gameID)
+	var i Interaction
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.PlayerID,
+		&i.Action,
+		&i.OccurredAt,
+		&i.SavedBy,
+	)
+	return i, err
+}
+
+const lastInteraction = `-- name: LastInteraction :one
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE game_id = ?
+ORDER BY occurred_at DESC, id DESC
+LIMIT 1
+`
+
+func (q *Queries) LastInteraction(ctx context.Context, gameID int64) (Interaction, error) {
+	row := q.db.QueryRowContext(ctx, lastInteraction, gameID)
+	var i Interaction
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.PlayerID,
+		&i.Action,
+		&i.OccurredAt,
+		&i.SavedBy,
+	)
+	return i, err
+}
 
 const listInteractionsForReplay = `-- name: ListInteractionsForReplay :many
 SELECT id, game_id, player_id, action, occurred_at, saved_by
@@ -78,21 +123,72 @@ func (q *Queries) ListPlayerGames(ctx context.Context, playerID int64) ([]Game, 
 	return items, nil
 }
 
+const listPlayerInteractions = `-- name: ListPlayerInteractions :many
+SELECT id, game_id, player_id, action, occurred_at, saved_by
+FROM interactions
+WHERE game_id = ? AND player_id = ?
+ORDER BY occurred_at DESC, id DESC
+LIMIT ? OFFSET ?
+`
+
+type ListPlayerInteractionsParams struct {
+	GameID   int64
+	PlayerID sql.NullInt64
+	Limit    int64
+	Offset   int64
+}
+
+func (q *Queries) ListPlayerInteractions(ctx context.Context, arg ListPlayerInteractionsParams) ([]Interaction, error) {
+	rows, err := q.db.QueryContext(ctx, listPlayerInteractions,
+		arg.GameID,
+		arg.PlayerID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Interaction
+	for rows.Next() {
+		var i Interaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.PlayerID,
+			&i.Action,
+			&i.OccurredAt,
+			&i.SavedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRecentInteractions = `-- name: ListRecentInteractions :many
 SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions
 WHERE game_id = ?
 ORDER BY occurred_at DESC, id DESC
-LIMIT ?
+LIMIT ? OFFSET ?
 `
 
 type ListRecentInteractionsParams struct {
 	GameID int64
 	Limit  int64
+	Offset int64
 }
 
 func (q *Queries) ListRecentInteractions(ctx context.Context, arg ListRecentInteractionsParams) ([]Interaction, error) {
-	rows, err := q.db.QueryContext(ctx, listRecentInteractions, arg.GameID, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listRecentInteractions, arg.GameID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

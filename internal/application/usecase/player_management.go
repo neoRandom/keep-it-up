@@ -16,11 +16,11 @@ type PlayerManagement struct {
 	auth port.Authentication
 }
 
-func NewPlayerManagement(q *database.Queries, auth port.Authentication) *PlayerManagement {
+func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*PlayerManagement, error) {
 	if auth == nil {
-		return nil
+		return nil, errors.New("authentication is not initialized")
 	}
-	return &PlayerManagement{q: q, auth: auth}
+	return &PlayerManagement{q: q, auth: auth}, nil
 }
 
 func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (database.Player, error) {
@@ -35,7 +35,7 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 
 	if len(name) < 2 {
 		return database.Player{}, fmt.Errorf(
-			"Player name cannot have less than 2 characters: '%s'",
+			"player name cannot have less than 2 characters: '%s'",
 			name,
 		)
 	}
@@ -44,14 +44,14 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 
 	if len(username) < 3 {
 		return database.Player{}, fmt.Errorf(
-			"Username cannot have less than 3 characters: '%s'",
+			"username cannot have less than 3 characters: '%s'",
 			username,
 		)
 	}
 
 	if !util.IsAlphanumeric(username) {
 		return database.Player{}, fmt.Errorf(
-			"Username isn't purely alphanumeric: '%s'",
+			"username isn't purely alphanumeric: '%s'",
 			username,
 		)
 	}
@@ -88,13 +88,13 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64
 	}
 
 	if playerId < 1 {
-		return fmt.Errorf("Invalid player ID: %d", playerId)
+		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
 
 	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
-		return fmt.Errorf("Player name cannot have less than 2 characters: '%s'", name)
+		return fmt.Errorf("player name cannot have less than 2 characters: '%s'", name)
 	}
 
 	if err := uc.q.UpdatePlayerName(ctx, database.UpdatePlayerNameParams{
@@ -115,7 +115,7 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 	}
 
 	if id < 1 {
-		return fmt.Errorf("Invalid player ID: %d", id)
+		return fmt.Errorf("invalid player ID: %d", id)
 	}
 
 	password = strings.TrimSpace(password)
@@ -212,7 +212,7 @@ func (uc *PlayerManagement) DeletePlayer(ctx context.Context, playerId int64) er
 	}
 
 	if playerId < 1 {
-		return fmt.Errorf("Invalid player ID: %d", playerId)
+		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
 
 	if err := uc.q.DeletePlayer(ctx, playerId); err != nil {

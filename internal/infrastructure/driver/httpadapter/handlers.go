@@ -11,6 +11,7 @@ import (
 	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/constant"
+	"keep-it-up/internal/infrastructure/database"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v5"
@@ -156,13 +157,24 @@ func (h *HTTPAdapter) handlePause(ctx *echo.Context) error {
 }
 
 func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
+	selector, err := querySelector(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
+		return badRequest(ctx, "Invalid query")
+	}
+
 	limit, err := interactionsLimit(ctx)
 	if err != nil {
 		log.Printf("bad request: %v", err)
 		return badRequest(ctx, "Invalid limit")
 	}
+	offset, err := interactionsOffset(ctx)
+	if err != nil {
+		log.Printf("bad request: %v", err)
+		return badRequest(ctx, "Invalid offset")
+	}
 
-	gameID, _, denied, writeErr := h.accessChecked(ctx)
+	gameID, playerID, denied, writeErr := h.accessChecked(ctx)
 	if writeErr != nil {
 		return writeErr
 	}
@@ -170,12 +182,45 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 		return nil
 	}
 
-	interactions, err := h.d.Fetch.ListInteractions(ctx.Request().Context(), gameID, limit)
-	if err != nil {
-		log.Printf("list interactions error: %v", err)
-		return internal(ctx)
-	}
+	cctx := ctx.Request().Context()
 
+	switch selector {
+	case queryAll:
+		interactions, err := h.d.Fetch.ListInteractions(cctx, gameID, limit, offset)
+		if err != nil {
+			log.Printf("list interactions error: %v", err)
+			return internal(ctx)
+		}
+		return ctx.JSON(http.StatusOK, toInteractionDTOs(interactions))
+
+	case queryPlayer:
+		interactions, err := h.d.Fetch.ListPlayerInteractions(cctx, gameID, playerID, limit, offset)
+		if err != nil {
+			log.Printf("list player interactions error: %v", err)
+			return internal(ctx)
+		}
+		return ctx.JSON(http.StatusOK, toInteractionDTOs(interactions))
+
+	case queryFirst:
+		interaction, err := h.d.Fetch.FirstInteraction(cctx, gameID)
+		if err != nil {
+			log.Printf("get first interaction error: %v", err)
+			return internal(ctx)
+		}
+		return ctx.JSON(http.StatusOK, interactionDTOFrom(interaction))
+
+	default: // queryLast
+		interaction, err := h.d.Fetch.LastInteraction(cctx, gameID)
+		if err != nil {
+			log.Printf("get last interaction error: %v", err)
+			return internal(ctx)
+		}
+		return ctx.JSON(http.StatusOK, interactionDTOFrom(interaction))
+	}
+}
+
+// toInteractionDTOs maps interaction rows to client-facing DTOs.
+func toInteractionDTOs(interactions []database.Interaction) []interactionDTO {
 	dtos := make([]interactionDTO, 0, len(interactions))
 	for _, i := range interactions {
 		dtos = append(dtos, interactionDTO{
@@ -187,7 +232,23 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 			SavedBy:    nullableInt64(i.SavedBy),
 		})
 	}
-	return ctx.JSON(http.StatusOK, dtos)
+	return dtos
+}
+
+// interactionDTOFrom maps a single interaction (or nil) to a DTO, letting
+// first/last return JSON null when a game has no interactions.
+func interactionDTOFrom(i *database.Interaction) *interactionDTO {
+	if i == nil {
+		return nil
+	}
+	return &interactionDTO{
+		ID:         i.ID,
+		GameID:     i.GameID,
+		PlayerID:   nullableInt64(i.PlayerID),
+		Action:     i.Action,
+		OccurredAt: i.OccurredAt,
+		SavedBy:    nullableInt64(i.SavedBy),
+	}
 }
 
 // playerID returns the authenticated player ID from the JWT claims.
@@ -254,6 +315,38 @@ func interactionsLimit(c *echo.Context) (int64, error) {
 		return 0, errors.New("limit must be >= 1")
 	}
 	return limit, nil
+}
+
+// interactionsOffset returns the `offset` query param, defaulting to
+// defaultInteractionsOffset. Values below 0 are rejected.
+func interactionsOffset(c *echo.Context) (int64, error) {
+	raw := c.QueryParam("offset")
+	if raw == "" {
+		return defaultInteractionsOffset, nil
+	}
+	offset, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid offset %q: %w", raw, err)
+	}
+	if offset < 0 {
+		return 0, errors.New("offset must be >= 0")
+	}
+	return offset, nil
+}
+
+// querySelector parses the `query` query param, defaulting to queryAll.
+// It rejects any value outside the allowed enum.
+func querySelector(c *echo.Context) (string, error) {
+	raw := c.QueryParam("query")
+	if raw == "" {
+		return queryAll, nil
+	}
+	switch raw {
+	case queryAll, queryPlayer, queryFirst, queryLast:
+		return raw, nil
+	default:
+		return "", fmt.Errorf("invalid query %q", raw)
+	}
 }
 
 // --- Response helpers ---

@@ -38,7 +38,7 @@ func (uc *Authentication) CheckPlayerPassword(
 
 	if len(username) < 3 {
 		return database.Player{}, fmt.Errorf(
-			"Username cannot have less than 3 characters: '%s'", username,
+			"username cannot have less than 3 characters: '%s'", username,
 		)
 	}
 
