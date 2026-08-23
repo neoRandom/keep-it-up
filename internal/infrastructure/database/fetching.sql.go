@@ -126,12 +126,17 @@ func (q *Queries) ListPlayerGames(ctx context.Context, playerID int64) ([]Game, 
 const listPlayerInteractions = `-- name: ListPlayerInteractions :many
 SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions
-WHERE player_id = ?
+WHERE game_id = ? AND player_id = ?
 ORDER BY occurred_at DESC, id DESC
 `
 
-func (q *Queries) ListPlayerInteractions(ctx context.Context, playerID sql.NullInt64) ([]Interaction, error) {
-	rows, err := q.db.QueryContext(ctx, listPlayerInteractions, playerID)
+type ListPlayerInteractionsParams struct {
+	GameID   int64
+	PlayerID sql.NullInt64
+}
+
+func (q *Queries) ListPlayerInteractions(ctx context.Context, arg ListPlayerInteractionsParams) ([]Interaction, error) {
+	rows, err := q.db.QueryContext(ctx, listPlayerInteractions, arg.GameID, arg.PlayerID)
 	if err != nil {
 		return nil, err
 	}

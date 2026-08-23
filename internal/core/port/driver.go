@@ -56,7 +56,7 @@ type DataFetching interface {
 		ctx context.Context, gameId, limit int64,
 	) ([]database.Interaction, error)
 	ListPlayerInteractions(
-		ctx context.Context, playerId int64,
+		ctx context.Context, gameId, playerId int64,
 	) ([]database.Interaction, error)
 	FirstInteraction(
 		ctx context.Context, gameId int64,

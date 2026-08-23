@@ -249,28 +249,31 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 
 	t.Run("nil queries", func(t *testing.T) {
 		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.ListPlayerInteractions(ctx, 1)
+		_, err := uc.ListPlayerInteractions(ctx, 1, 1)
 		requireErrContains(t, err, "not initialized")
 	})
 
 	for _, tt := range []struct {
 		name     string
+		gameID   int64
 		playerID int64
 		wantErr  string
 	}{
-		{"invalid player id: zero", 0, "Invalid player ID"},
-		{"invalid player id: negative", -1, "Invalid player ID"},
+		{"invalid game id: zero", 0, 1, "Invalid game ID"},
+		{"invalid game id: negative", -1, 1, "Invalid game ID"},
+		{"invalid player id: zero", 1, 0, "Invalid player ID"},
+		{"invalid player id: negative", 1, -1, "Invalid player ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
-			_, err := uc.ListPlayerInteractions(ctx, tt.playerID)
+			_, err := uc.ListPlayerInteractions(ctx, tt.gameID, tt.playerID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
-	t.Run("player with no interactions returns empty, no error", func(t *testing.T) {
+	t.Run("player with no interactions in a game returns empty, no error", func(t *testing.T) {
 		uc := NewDataFetching(newTestDB(t), newFixedClock())
-		interactions, err := uc.ListPlayerInteractions(ctx, 1)
+		interactions, err := uc.ListPlayerInteractions(ctx, 5, 1)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -279,37 +282,37 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 		}
 	})
 
-	t.Run("returns only the given player's interactions, newest first", func(t *testing.T) {
+	t.Run("returns only the given player's interactions for the given game, newest first", func(t *testing.T) {
 		q := newTestDB(t)
 		commands := NewGameCommands(q, newFixedClock())
 
-		// Player 1 performs a save on game 1, then player 2 on game 2, then
-		// player 1 again on game 3. The fixed clock advances one second per
-		// call, so timestamps are strictly increasing.
+		// Player 1 saves in game 1, player 2 saves in game 1, player 1 saves
+		// again in game 1, player 1 saves in game 2. The fixed clock advances
+		// one second per call, so timestamps are strictly increasing.
 		if err := commands.SaveGame(ctx, 1, 1, 60); err != nil {
 			t.Fatalf("setup save 1: %v", err)
 		}
-		if err := commands.SaveGame(ctx, 2, 2, 60); err != nil {
+		if err := commands.SaveGame(ctx, 1, 2, 60); err != nil {
 			t.Fatalf("setup save 2: %v", err)
 		}
-		if err := commands.SaveGame(ctx, 3, 1, 60); err != nil {
+		if err := commands.SaveGame(ctx, 1, 1, 60); err != nil {
 			t.Fatalf("setup save 3: %v", err)
+		}
+		if err := commands.SaveGame(ctx, 2, 1, 60); err != nil {
+			t.Fatalf("setup save 4: %v", err)
 		}
 
 		uc := NewDataFetching(q, newFixedClock())
-		interactions, err := uc.ListPlayerInteractions(ctx, 1)
+		interactions, err := uc.ListPlayerInteractions(ctx, 1, 1)
 		if err != nil {
 			t.Fatalf("ListPlayerInteractions: %v", err)
 		}
 		if len(interactions) != 2 {
-			t.Fatalf("len = %d, want 2 (player 1's only)", len(interactions))
+			t.Fatalf("len = %d, want 2 (player 1's in game 1 only)", len(interactions))
 		}
-		// Newest first: game 3 was saved after game 1.
-		if interactions[0].GameID != 3 {
-			t.Errorf("interactions[0].GameID = %d, want 3 (newest first)", interactions[0].GameID)
-		}
-		if interactions[1].GameID != 1 {
-			t.Errorf("interactions[1].GameID = %d, want 1", interactions[1].GameID)
+		// Newest first within game 1: the second save precedes the first.
+		if interactions[0].GameID != 1 || interactions[1].GameID != 1 {
+			t.Errorf("expected only game 1 interactions, got %+v", interactions)
 		}
 		if interactions[0].PlayerID.Int64 != 1 || interactions[1].PlayerID.Int64 != 1 {
 			t.Errorf("expected only player 1's interactions, got %+v", interactions)

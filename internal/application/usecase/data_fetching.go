@@ -96,13 +96,17 @@ func (uc *DataFetching) ListInteractions(
 	return interactions, nil
 }
 
-// ListPlayerInteractions returns the interactions a player made across all
-// games, newest first.
+// ListPlayerInteractions returns the interactions a player made in a specific
+// game, newest first.
 func (uc *DataFetching) ListPlayerInteractions(
-	ctx context.Context, playerId int64,
+	ctx context.Context, gameId, playerId int64,
 ) ([]database.Interaction, error) {
 	if uc.q == nil {
 		return nil, errors.New("database queries are not initialized")
+	}
+
+	if gameId < 1 {
+		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
 	}
 
 	if playerId < 1 {
@@ -111,10 +115,13 @@ func (uc *DataFetching) ListPlayerInteractions(
 
 	interactions, err := uc.q.ListPlayerInteractions(
 		ctx,
-		sql.NullInt64{Int64: playerId, Valid: true},
+		database.ListPlayerInteractionsParams{
+			GameID:   gameId,
+			PlayerID: sql.NullInt64{Int64: playerId, Valid: true},
+		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list interactions for player %d: %w", playerId, err)
+		return nil, fmt.Errorf("failed to list interactions for player %d in game %d: %w", playerId, gameId, err)
 	}
 	return interactions, nil
 }

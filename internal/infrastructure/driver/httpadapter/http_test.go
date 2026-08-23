@@ -62,7 +62,7 @@ func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit int64) (
 	return f.interactions, f.err
 }
 
-func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, playerId int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, gameId, playerId int64) ([]database.Interaction, error) {
 	return f.interactions, f.err
 }
 
