@@ -8,13 +8,14 @@ import (
 )
 
 // TestAuthentication_IsPasswordValid exercises the password validity rule boundaries:
-// minimum 6 characters and no whitespace.
+// minimum 6 characters and only 1-byte ASCII alphanumeric characters ([A-Za-z0-9]);
+// no spaces, punctuation, tabs/newlines, or multi-byte/Unicode characters.
 func TestAuthentication_IsPasswordValid(t *testing.T) {
 	tests := []struct {
 		password string
 		valid    bool
 	}{
-		// Length boundary.
+		// Length boundary (all-ASCII alphanumeric).
 		{"abc12", false},  // 5 chars - below minimum
 		{"abc123", true},  // 6 chars - at minimum
 		{"abc1234", true}, // 7 chars - above minimum
@@ -22,10 +23,29 @@ func TestAuthentication_IsPasswordValid(t *testing.T) {
 		{"short", false},  // < 6 chars
 		{"123456", true},  // 6 digits
 		{"aaaaaa", true},  // 6 same letters
-		// Whitespace.
-		{" abc123", false},    // leading space
-		{"abc123 ", false},    // trailing space
-		{"secret 123", false}, // interior space
+		{"abcdef", true},  // 6 lowercase letters
+		{"ABCDEF", true},  // 6 uppercase letters
+		{"ABC123", true},  // 6 mixed-case letters + digits
+		{"abcdefg", true}, // 7 lowercase letters
+		// Whitespace / control characters (no literal space; false-pass under old check).
+		{"abc\t123", false}, // interior tab, no space
+		{"abc\n123", false}, // interior newline, no space
+		{" abc123", false},  // leading space
+		{"abc123 ", false},  // trailing space
+		{"secret 123", false},
+		// Punctuation / other non-alphanumeric.
+		{"abc_123", false},  // underscore
+		{"abc-123", false},  // hyphen
+		{"abc.123", false},  // period
+		{"abc123!", false},  // exclamation
+		{"abc@123", false},  // at sign
+		{"abcdefg!", false}, // trailing punctuation, byte len >= 6
+		// Multi-byte / Unicode characters (byte length >= 6).
+		{"abcdef\u00e9", false},     // trailing accented letter é (2 bytes)
+		{"abc\u00e9def", false},     // interior accented letter
+		{"\u00e9abcde", false},      // leading accented letter
+		{"123456\u00e9", false},     // digits + accented letter
+		{"abc123\U0001F600", false}, // digits + emoji 😀 (4 bytes)
 	}
 
 	for _, tc := range tests {

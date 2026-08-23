@@ -245,14 +245,14 @@ func TestPlayerManagement_RejectsInvalidInput(t *testing.T) {
 		}
 	}
 
-	// Password rule (min 6 chars, no whitespace) lives in the service layer;
+	// Password rule (min 6 chars, letters and digits only) lives in the service layer;
 	// core/service/authentication_test.go is the authoritative boundary spec.
 	// These representative cases confirm the use case propagates that rule.
 	if _, err := uc.AddPlayer(ctx, "Player1", "player1", "abc12"); err == nil {
 		t.Fatal("AddPlayer() accepted a password below the minimum length")
 	}
 	if _, err := uc.AddPlayer(ctx, "Player2", "player2", "secret 123"); err == nil {
-		t.Fatal("AddPlayer() accepted a password containing whitespace")
+		t.Fatal("AddPlayer() accepted a password containing a non-alphanumeric character")
 	}
 	if err := uc.UpdatePlayerPassword(ctx, "alice", "secret123", "short"); err == nil {
 		t.Fatal("UpdatePlayerPassword() accepted a short password")
