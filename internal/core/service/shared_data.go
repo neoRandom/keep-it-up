@@ -14,7 +14,20 @@ func ComputeValid(s *model.SharedData, now time.Time) {
 		s.Valid = nil
 		return
 	}
+
 	valid := now.Before(*s.DeadlineAt)
+
+	// A paused game is still valid as long as the pause happened after the
+	// last save and before the deadline. While paused, the clock is frozen,
+	// so the deadline is not consumed by the elapsed pause time.
+	if s.Status == model.Paused &&
+		s.LastPausedAt != nil &&
+		s.LastSavedAt != nil &&
+		s.LastPausedAt.Before(*s.DeadlineAt) &&
+		s.LastPausedAt.After(*s.LastSavedAt) {
+		valid = true
+	}
+
 	s.Valid = &valid
 }
 
