@@ -16,6 +16,8 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/valkey-io/valkey-go"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -59,6 +61,17 @@ func run() int {
 	commands := usecase.NewGameCommands(q, timeProvider)
 	access := usecase.NewAccessManagement(q)
 
+	valkeyClient, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{cfg.ValkeyAddress}})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "connect valkey: %v\n", err)
+		return 1
+	}
+	defer valkeyClient.Close()
+	if err := valkeyClient.Do(ctx, valkeyClient.B().Ping().Build()).Error(); err != nil {
+		fmt.Fprintf(os.Stderr, "connect valkey: %v\n", err)
+		return 1
+	}
+
 	deps := httpadapter.Deps{
 		Auth: usecase.NewAuthentication(
 			q,
@@ -77,6 +90,11 @@ func run() int {
 		cfg.JWTSecret,
 		timeProvider,
 		deps,
+		httpadapter.WithIdempotency(
+			driven.NewValkeyIdempotencyStore(valkeyClient),
+			cfg.IdempotencyTTL,
+			cfg.IdempotencyHeader,
+		),
 	)
 
 	var wg sync.WaitGroup

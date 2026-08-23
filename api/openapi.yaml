@@ -8,6 +8,8 @@ paths:
   /login:
     post:
       summary: Log in
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -19,6 +21,8 @@ paths:
           description: Login successful; authentication cookies are set.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
 
   /games:
     get:
@@ -129,6 +133,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -143,7 +148,9 @@ paths:
         '404':
           $ref: '#/components/responses/GameNotFound'
         '409':
-          description: Game is not currently playing.
+          description: |
+            Game is not currently playing, or a request with the same
+            Idempotency-Key is already in progress.
 
   /play:
     post:
@@ -152,6 +159,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '204':
           description: Game resumed.
@@ -160,7 +168,9 @@ paths:
         '404':
           $ref: '#/components/responses/GameNotFound'
         '409':
-          description: Game is already playing.
+          description: |
+            Game is already playing, or a request with the same
+            Idempotency-Key is already in progress.
 
   /pause:
     post:
@@ -169,6 +179,7 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '204':
           description: Game paused.
@@ -177,7 +188,9 @@ paths:
         '404':
           $ref: '#/components/responses/GameNotFound'
         '409':
-          description: Game is not currently playing.
+          description: |
+            Game is not currently playing, or a request with the same
+            Idempotency-Key is already in progress.
 
 components:
   securitySchemes:
@@ -197,12 +210,27 @@ components:
         type: integer
         format: int64
 
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        Optional client-generated key used to deduplicate the mutation. If a
+        request with the same key is already in progress, the server responds
+        with 409. If it already completed, the server replays the cached
+        response instead of executing the request again.
+      schema:
+        type: string
+
   responses:
     Unauthorized:
       description: Authentication required.
 
     GameNotFound:
       description: Game not found or inaccessible.
+
+    IdempotencyConflict:
+      description: A request with the same Idempotency-Key is already in progress.
 
   schemas:
     LoginRequest:
