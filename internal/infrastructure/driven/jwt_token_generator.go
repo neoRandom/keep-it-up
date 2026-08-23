@@ -19,7 +19,7 @@ type JwtTokenGenerator struct {
 
 func (g *JwtTokenGenerator) GenerateToken(player database.Player) (string, error) {
 	if strings.TrimSpace(g.JwtSecret) == "" {
-		return "", errors.New("JWT secret cannot be empty string")
+		return "", errors.New("jwt secret cannot be empty string")
 	}
 	if g.TimeProvider == nil {
 		return "", errors.New("time provider is not initialized")

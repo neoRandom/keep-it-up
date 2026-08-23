@@ -28,7 +28,7 @@ func (uc *DataFetching) ListPlayerGames(
 	}
 
 	if playerId < 1 {
-		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
+		return nil, fmt.Errorf("invalid player ID: %d", playerId)
 	}
 
 	games, err := uc.q.ListPlayerGames(ctx, playerId)
@@ -50,7 +50,7 @@ func (uc *DataFetching) GetSharedData(
 	}
 
 	if gameId < 1 {
-		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
 
 	interactions, err := uc.q.ListInteractionsForReplay(ctx, gameId)
@@ -76,7 +76,7 @@ func (uc *DataFetching) ListInteractions(
 	}
 
 	if gameId < 1 {
-		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
 
 	if limit < 0 {
@@ -111,11 +111,11 @@ func (uc *DataFetching) ListPlayerInteractions(
 	}
 
 	if gameId < 1 {
-		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
 
 	if playerId < 1 {
-		return nil, fmt.Errorf("Invalid player ID: %d", playerId)
+		return nil, fmt.Errorf("invalid player ID: %d", playerId)
 	}
 
 	if limit < 0 {
@@ -151,7 +151,7 @@ func (uc *DataFetching) FirstInteraction(
 	}
 
 	if gameId < 1 {
-		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
 
 	interaction, err := uc.q.FirstInteraction(ctx, gameId)
@@ -174,7 +174,7 @@ func (uc *DataFetching) LastInteraction(
 	}
 
 	if gameId < 1 {
-		return nil, fmt.Errorf("Invalid game ID: %d", gameId)
+		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
 
 	interaction, err := uc.q.LastInteraction(ctx, gameId)

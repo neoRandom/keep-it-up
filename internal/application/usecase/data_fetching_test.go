@@ -19,8 +19,8 @@ func TestDataFetching_ListPlayerGames(t *testing.T) {
 		playerID int64
 		wantErr  string
 	}{
-		{"invalid player id: zero", 0, "Invalid player ID"},
-		{"invalid player id: negative", -1, "Invalid player ID"},
+		{"invalid player id: zero", 0, "invalid player ID"},
+		{"invalid player id: negative", -1, "invalid player ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
@@ -61,8 +61,8 @@ func TestDataFetching_GetSharedData(t *testing.T) {
 		gameID  int64
 		wantErr string
 	}{
-		{"invalid game id: zero", 0, "Invalid game ID"},
-		{"invalid game id: negative", -1, "Invalid game ID"},
+		{"invalid game id: zero", 0, "invalid game ID"},
+		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
@@ -124,8 +124,8 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 		gameID  int64
 		wantErr string
 	}{
-		{"invalid game id: zero", 0, "Invalid game ID"},
-		{"invalid game id: negative", -1, "Invalid game ID"},
+		{"invalid game id: zero", 0, "invalid game ID"},
+		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
@@ -191,8 +191,8 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 		gameID  int64
 		wantErr string
 	}{
-		{"invalid game id: zero", 0, "Invalid game ID"},
-		{"invalid game id: negative", -1, "Invalid game ID"},
+		{"invalid game id: zero", 0, "invalid game ID"},
+		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
@@ -261,10 +261,10 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 		offset   int64
 		wantErr  string
 	}{
-		{"invalid game id: zero", 0, 1, 10, 0, "Invalid game ID"},
-		{"invalid game id: negative", -1, 1, 10, 0, "Invalid game ID"},
-		{"invalid player id: zero", 1, 0, 10, 0, "Invalid player ID"},
-		{"invalid player id: negative", 1, -1, 10, 0, "Invalid player ID"},
+		{"invalid game id: zero", 0, 1, 10, 0, "invalid game ID"},
+		{"invalid game id: negative", -1, 1, 10, 0, "invalid game ID"},
+		{"invalid player id: zero", 1, 0, 10, 0, "invalid player ID"},
+		{"invalid player id: negative", 1, -1, 10, 0, "invalid player ID"},
 		{"negative limit", 1, 1, -1, 0, "query limit cannot be less than 0"},
 		{"negative offset", 1, 1, 10, -1, "query offset cannot be less than 0"},
 	} {
@@ -366,8 +366,8 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 		offset  int64
 		wantErr string
 	}{
-		{"invalid game id: zero", 0, 10, 0, "Invalid game ID"},
-		{"invalid game id: negative", -1, 10, 0, "Invalid game ID"},
+		{"invalid game id: zero", 0, 10, 0, "invalid game ID"},
+		{"invalid game id: negative", -1, 10, 0, "invalid game ID"},
 		{"negative limit", 1, -1, 0, "query limit cannot be less than 0"},
 		{"negative offset", 1, 10, -1, "query offset cannot be less than 0"},
 	} {
