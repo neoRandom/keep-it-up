@@ -325,7 +325,7 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 
 	t.Run("nil queries", func(t *testing.T) {
 		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.ListInteractions(ctx, 1, 10)
+		_, err := uc.ListInteractions(ctx, 1, 10, 0)
 		requireErrContains(t, err, "not initialized")
 	})
 
@@ -333,22 +333,24 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 		name    string
 		gameID  int64
 		limit   int64
+		offset  int64
 		wantErr string
 	}{
-		{"invalid game id: zero", 0, 10, "Invalid game ID"},
-		{"invalid game id: negative", -1, 10, "Invalid game ID"},
-		{"negative limit", 1, -1, "query limit cannot be less than 0"},
+		{"invalid game id: zero", 0, 10, 0, "Invalid game ID"},
+		{"invalid game id: negative", -1, 10, 0, "Invalid game ID"},
+		{"negative limit", 1, -1, 0, "query limit cannot be less than 0"},
+		{"negative offset", 1, 10, -1, "query offset cannot be less than 0"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := NewDataFetching(newTestDB(t), newFixedClock())
-			_, err := uc.ListInteractions(ctx, tt.gameID, tt.limit)
+			_, err := uc.ListInteractions(ctx, tt.gameID, tt.limit, tt.offset)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("game with no interactions returns empty, no error", func(t *testing.T) {
 		uc := NewDataFetching(newTestDB(t), newFixedClock())
-		interactions, err := uc.ListInteractions(ctx, 1, 10)
+		interactions, err := uc.ListInteractions(ctx, 1, 10, 0)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -359,8 +361,33 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 
 	t.Run("limit zero is a valid boundary", func(t *testing.T) {
 		uc := NewDataFetching(newTestDB(t), newFixedClock())
-		if _, err := uc.ListInteractions(ctx, 1, 0); err != nil {
+		if _, err := uc.ListInteractions(ctx, 1, 0, 0); err != nil {
 			t.Fatalf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("offset paginates past earlier interactions", func(t *testing.T) {
+		q := newTestDB(t)
+		commands := NewGameCommands(q, newFixedClock())
+
+		// Three saves, one second apart: 12:00:00, 12:00:01, 12:00:02.
+		for i := 0; i < 3; i++ {
+			if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
+				t.Fatalf("setup save %d: %v", i+1, err)
+			}
+		}
+
+		uc := NewDataFetching(q, newFixedClock())
+		interactions, err := uc.ListInteractions(ctx, 5, 10, 1)
+		if err != nil {
+			t.Fatalf("ListInteractions: %v", err)
+		}
+		if len(interactions) != 2 {
+			t.Fatalf("len = %d, want 2 (one skipped by offset)", len(interactions))
+		}
+		// Newest first: with offset 1, the most recent (12:00:02) is skipped.
+		if interactions[0].OccurredAt != "2026-08-22T12:00:01Z" {
+			t.Errorf("interactions[0].OccurredAt = %q, want 12:00:01", interactions[0].OccurredAt)
 		}
 	})
 }

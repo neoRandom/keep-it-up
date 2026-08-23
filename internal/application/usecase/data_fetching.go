@@ -69,7 +69,7 @@ func (uc *DataFetching) GetSharedData(
 }
 
 func (uc *DataFetching) ListInteractions(
-	ctx context.Context, gameId int64, limit int64,
+	ctx context.Context, gameId, limit, offset int64,
 ) ([]database.Interaction, error) {
 	if uc.q == nil {
 		return nil, errors.New("database queries are not initialized")
@@ -83,11 +83,16 @@ func (uc *DataFetching) ListInteractions(
 		return nil, errors.New("query limit cannot be less than 0")
 	}
 
+	if offset < 0 {
+		return nil, errors.New("query offset cannot be less than 0")
+	}
+
 	interactions, err := uc.q.ListRecentInteractions(
 		ctx,
 		database.ListRecentInteractionsParams{
 			GameID: gameId,
 			Limit:  limit,
+			Offset: offset,
 		},
 	)
 	if err != nil {

@@ -170,16 +170,17 @@ SELECT id, game_id, player_id, action, occurred_at, saved_by
 FROM interactions
 WHERE game_id = ?
 ORDER BY occurred_at DESC, id DESC
-LIMIT ?
+LIMIT ? OFFSET ?
 `
 
 type ListRecentInteractionsParams struct {
 	GameID int64
 	Limit  int64
+	Offset int64
 }
 
 func (q *Queries) ListRecentInteractions(ctx context.Context, arg ListRecentInteractionsParams) ([]Interaction, error) {
-	rows, err := q.db.QueryContext(ctx, listRecentInteractions, arg.GameID, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listRecentInteractions, arg.GameID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

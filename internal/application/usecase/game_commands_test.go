@@ -51,7 +51,7 @@ func TestGameCommands_ValidSavePauseResumeSequence(t *testing.T) {
 	// the oldest (the initial save). A limit of 0 would produce zero rows, so
 	// request a positive limit.
 	fetch := NewDataFetching(uc.q, newFixedClock())
-	interactions, err := fetch.ListInteractions(ctx, 1, 10)
+	interactions, err := fetch.ListInteractions(ctx, 1, 10, 0)
 	if err != nil {
 		t.Fatalf("ListInteractions: %v", err)
 	}
