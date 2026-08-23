@@ -51,8 +51,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid IDEMPOTENCY_TTL: %w", err)
 	}
-	if idempotencyTTL <= 0 {
-		return Config{}, fmt.Errorf("IDEMPOTENCY_TTL must be a positive duration")
+	// The Valkey adapter applies the TTL via SET EX, which is second-granular,
+	// so sub-second values would be truncated to zero and rejected by the server.
+	if idempotencyTTL < time.Second {
+		return Config{}, fmt.Errorf("IDEMPOTENCY_TTL must be at least 1 second, got %s", idempotencyTTL)
 	}
 
 	idempotencyHeader := os.Getenv("IDEMPOTENCY_HEADER")

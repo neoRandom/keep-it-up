@@ -95,6 +95,20 @@ func TestLoadInvalidIdempotencyTTL(t *testing.T) {
 	}
 }
 
+func TestLoadSubSecondIdempotencyTTL(t *testing.T) {
+	old := setRequiredEnv()
+	defer restoreEnv(old)
+	_ = os.Setenv("IDEMPOTENCY_TTL", "500ms")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for sub-second IDEMPOTENCY_TTL, got nil")
+	}
+	if !strings.Contains(err.Error(), "IDEMPOTENCY_TTL") {
+		t.Errorf("error = %q, want mention of IDEMPOTENCY_TTL", err)
+	}
+}
+
 func TestLoadMissingIdempotencyHeader(t *testing.T) {
 	old := setRequiredEnv()
 	defer restoreEnv(old)
