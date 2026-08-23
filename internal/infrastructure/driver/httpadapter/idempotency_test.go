@@ -9,7 +9,6 @@ import (
 
 	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
 
 	"github.com/labstack/echo/v5"
 )
@@ -87,8 +86,8 @@ func (a *countingAuth) LoginPlayer(_ context.Context, _, _ string) (model.AuthRe
 	return a.loginRes, nil
 }
 
-func (a *countingAuth) CheckPlayerPassword(_ context.Context, _, _ string) (database.Player, error) {
-	return database.Player{}, nil
+func (a *countingAuth) CheckPlayerPassword(_ context.Context, _, _ string) (model.Player, error) {
+	return model.Player{}, nil
 }
 
 // --- Router helper ---

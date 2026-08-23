@@ -7,7 +7,7 @@ import (
 
 	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
+	coremodel "keep-it-up/internal/core/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -42,7 +42,7 @@ func parseToken(t *testing.T, raw, secret string) *model.JwtPlayerClaims {
 func TestGenerateToken_ValidClaims(t *testing.T) {
 	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime()}
 
-	raw, err := gen.GenerateToken(database.Player{ID: 42, Username: "neo"})
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 42, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestGenerateToken_ValidClaims(t *testing.T) {
 func TestGenerateToken_ExpiryMatchesSessionLifetime(t *testing.T) {
 	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime()}
 
-	raw, err := gen.GenerateToken(database.Player{ID: 1, Username: "neo"})
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 1, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestGenerateToken_ExpiryMatchesSessionLifetime(t *testing.T) {
 
 func TestGenerateToken_RejectsWrongSecret(t *testing.T) {
 	gen := &JwtTokenGenerator{JwtSecret: "correct", TimeProvider: newFixedTime()}
-	raw, err := gen.GenerateToken(database.Player{ID: 1, Username: "neo"})
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 1, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
@@ -93,14 +93,14 @@ func TestGenerateToken_RejectsWrongSecret(t *testing.T) {
 func TestGenerateToken_Errors(t *testing.T) {
 	t.Run("empty secret", func(t *testing.T) {
 		gen := &JwtTokenGenerator{JwtSecret: "  ", TimeProvider: newFixedTime()}
-		if _, err := gen.GenerateToken(database.Player{}); err == nil {
+		if _, err := gen.GenerateToken(coremodel.Player{}); err == nil {
 			t.Fatal("expected error for empty secret")
 		}
 	})
 
 	t.Run("nil time provider", func(t *testing.T) {
 		gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: nil}
-		if _, err := gen.GenerateToken(database.Player{}); err == nil {
+		if _, err := gen.GenerateToken(coremodel.Player{}); err == nil {
 			t.Fatal("expected error for nil time provider")
 		}
 	})

@@ -7,6 +7,8 @@ import (
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/infrastructure/database/mapping"
 	"keep-it-up/internal/infrastructure/util"
 	"strings"
 )
@@ -23,18 +25,18 @@ func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*Player
 	return &PlayerManagement{q: q, auth: auth}, nil
 }
 
-func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (database.Player, error) {
+func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (model.Player, error) {
 	if uc.q == nil {
-		return database.Player{}, fmt.Errorf("database queries are not initialized")
+		return model.Player{}, fmt.Errorf("database queries are not initialized")
 	}
 	if uc.auth == nil {
-		return database.Player{}, fmt.Errorf("authentication is not initialized")
+		return model.Player{}, fmt.Errorf("authentication is not initialized")
 	}
 
 	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"player name cannot have less than 2 characters: '%s'",
 			name,
 		)
@@ -43,14 +45,14 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	username = strings.TrimSpace(username)
 
 	if len(username) < 3 {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"username cannot have less than 3 characters: '%s'",
 			username,
 		)
 	}
 
 	if !util.IsAlphanumeric(username) {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"username isn't purely alphanumeric: '%s'",
 			username,
 		)
@@ -59,16 +61,16 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	password = strings.TrimSpace(password)
 
 	if password == username {
-		return database.Player{}, errors.New("player password cannot be equal to its username")
+		return model.Player{}, errors.New("player password cannot be equal to its username")
 	}
 
 	if err := service.IsPasswordValid(password); err != nil {
-		return database.Player{}, err
+		return model.Player{}, err
 	}
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return database.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
+		return model.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
 	player, err := uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
@@ -77,9 +79,9 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		HashedPassword: hashedPassword,
 	})
 	if err != nil {
-		return database.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
+		return model.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
 	}
-	return player, nil
+	return mapping.ToDomainPlayer(player), nil
 }
 
 func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64, name string) error {

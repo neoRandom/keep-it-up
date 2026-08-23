@@ -11,7 +11,7 @@ import (
 	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
+	coremodel "keep-it-up/internal/core/model"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v5"
@@ -220,16 +220,16 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 }
 
 // toInteractionDTOs maps interaction rows to client-facing DTOs.
-func toInteractionDTOs(interactions []database.Interaction) []interactionDTO {
+func toInteractionDTOs(interactions []coremodel.Interaction) []interactionDTO {
 	dtos := make([]interactionDTO, 0, len(interactions))
 	for _, i := range interactions {
 		dtos = append(dtos, interactionDTO{
 			ID:         i.ID,
 			GameID:     i.GameID,
-			PlayerID:   nullableInt64(i.PlayerID),
+			PlayerID:   i.PlayerID,
 			Action:     i.Action,
-			OccurredAt: i.OccurredAt,
-			SavedBy:    nullableInt64(i.SavedBy),
+			OccurredAt: i.OccurredAt.Format(constant.DBDatetimeFormat),
+			SavedBy:    i.SavedBy,
 		})
 	}
 	return dtos
@@ -237,17 +237,17 @@ func toInteractionDTOs(interactions []database.Interaction) []interactionDTO {
 
 // interactionDTOFrom maps a single interaction (or nil) to a DTO, letting
 // first/last return JSON null when a game has no interactions.
-func interactionDTOFrom(i *database.Interaction) *interactionDTO {
+func interactionDTOFrom(i *coremodel.Interaction) *interactionDTO {
 	if i == nil {
 		return nil
 	}
 	return &interactionDTO{
 		ID:         i.ID,
 		GameID:     i.GameID,
-		PlayerID:   nullableInt64(i.PlayerID),
+		PlayerID:   i.PlayerID,
 		Action:     i.Action,
-		OccurredAt: i.OccurredAt,
-		SavedBy:    nullableInt64(i.SavedBy),
+		OccurredAt: i.OccurredAt.Format(constant.DBDatetimeFormat),
+		SavedBy:    i.SavedBy,
 	}
 }
 

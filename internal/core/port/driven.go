@@ -1,7 +1,7 @@
 package port
 
 import (
-	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/core/model"
 	"time"
 )
 
@@ -10,5 +10,5 @@ type TimeProvider interface {
 }
 
 type TokenGenerator interface {
-	GenerateToken(database.Player) (string, error)
+	GenerateToken(model.Player) (string, error)
 }

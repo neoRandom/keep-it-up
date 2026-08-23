@@ -3,7 +3,9 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/infrastructure/database/mapping"
 	"strings"
 )
 
@@ -15,15 +17,15 @@ func NewGameManagement(q *database.Queries) *GameManagement {
 	return &GameManagement{q: q}
 }
 
-func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Game, error) {
+func (uc *GameManagement) AddGame(ctx context.Context, name string) (model.Game, error) {
 	if uc.q == nil {
-		return database.Game{}, fmt.Errorf("database queries are not initialized")
+		return model.Game{}, fmt.Errorf("database queries are not initialized")
 	}
 
 	name = strings.TrimSpace(name)
 
 	if len(name) < 3 {
-		return database.Game{}, fmt.Errorf(
+		return model.Game{}, fmt.Errorf(
 			"game name cannot have less than 3 characters: '%s'",
 			name,
 		)
@@ -31,9 +33,9 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 
 	game, err := uc.q.CreateGame(ctx, name)
 	if err != nil {
-		return database.Game{}, fmt.Errorf("failed to create game %q: %w", name, err)
+		return model.Game{}, fmt.Errorf("failed to create game %q: %w", name, err)
 	}
-	return game, nil
+	return mapping.ToDomainGame(game), nil
 }
 
 func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string) error {

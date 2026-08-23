@@ -1,7 +1,6 @@
 package httpadapter
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -61,12 +60,3 @@ type saveRequest struct {
 	Duration int64 `json:"duration"`
 }
 
-// nullableInt64 maps a database.NullInt64 to *int64, nil when invalid, so
-// nullable IDs serialize as JSON null instead of an object.
-func nullableInt64(v sql.NullInt64) *int64 {
-	if !v.Valid {
-		return nil
-	}
-	x := v.Int64
-	return &x
-}

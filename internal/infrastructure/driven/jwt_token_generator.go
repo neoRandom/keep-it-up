@@ -6,7 +6,7 @@ import (
 	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
+	coremodel "keep-it-up/internal/core/model"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -17,7 +17,7 @@ type JwtTokenGenerator struct {
 	TimeProvider port.TimeProvider
 }
 
-func (g *JwtTokenGenerator) GenerateToken(player database.Player) (string, error) {
+func (g *JwtTokenGenerator) GenerateToken(player coremodel.Player) (string, error) {
 	if strings.TrimSpace(g.JwtSecret) == "" {
 		return "", errors.New("jwt secret cannot be empty string")
 	}

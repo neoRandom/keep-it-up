@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"testing"
+
+	"keep-it-up/internal/infrastructure/constant"
 )
 
 func TestDataFetching_ListPlayerGames(t *testing.T) {
@@ -171,7 +173,7 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 		if interaction == nil {
 			t.Fatal("expected non-nil interaction")
 		}
-		if interaction.Action != "saved" || interaction.OccurredAt != "2026-08-22T12:00:00Z" {
+		if interaction.Action != "saved" || interaction.OccurredAt.Format(constant.DBDatetimeFormat) != "2026-08-22T12:00:00Z" {
 			t.Errorf("first interaction = %+v, want the initial save", interaction)
 		}
 	})
@@ -238,7 +240,7 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 		if interaction == nil {
 			t.Fatal("expected non-nil interaction")
 		}
-		if interaction.Action != "saved" || interaction.OccurredAt != "2026-08-22T12:00:03Z" {
+		if interaction.Action != "saved" || interaction.OccurredAt.Format(constant.DBDatetimeFormat) != "2026-08-22T12:00:03Z" {
 			t.Errorf("last interaction = %+v, want the final save", interaction)
 		}
 	})
@@ -318,7 +320,7 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 		if interactions[0].GameID != 1 || interactions[1].GameID != 1 {
 			t.Errorf("expected only game 1 interactions, got %+v", interactions)
 		}
-		if interactions[0].PlayerID.Int64 != 1 || interactions[1].PlayerID.Int64 != 1 {
+		if *interactions[0].PlayerID != 1 || *interactions[1].PlayerID != 1 {
 			t.Errorf("expected only player 1's interactions, got %+v", interactions)
 		}
 	})
@@ -344,8 +346,8 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 			t.Fatalf("len = %d, want 2 (one skipped by offset)", len(interactions))
 		}
 		// Newest first: with offset 1, the most recent (12:00:02) is skipped.
-		if interactions[0].OccurredAt != "2026-08-22T12:00:01Z" {
-			t.Errorf("interactions[0].OccurredAt = %q, want 12:00:01", interactions[0].OccurredAt)
+		if interactions[0].OccurredAt.Format(constant.DBDatetimeFormat) != "2026-08-22T12:00:01Z" {
+			t.Errorf("interactions[0].OccurredAt.Format(constant.DBDatetimeFormat) = %q, want 12:00:01", interactions[0].OccurredAt.Format(constant.DBDatetimeFormat))
 		}
 	})
 }
@@ -416,8 +418,8 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 			t.Fatalf("len = %d, want 2 (one skipped by offset)", len(interactions))
 		}
 		// Newest first: with offset 1, the most recent (12:00:02) is skipped.
-		if interactions[0].OccurredAt != "2026-08-22T12:00:01Z" {
-			t.Errorf("interactions[0].OccurredAt = %q, want 12:00:01", interactions[0].OccurredAt)
+		if interactions[0].OccurredAt.Format(constant.DBDatetimeFormat) != "2026-08-22T12:00:01Z" {
+			t.Errorf("interactions[0].OccurredAt.Format(constant.DBDatetimeFormat) = %q, want 12:00:01", interactions[0].OccurredAt.Format(constant.DBDatetimeFormat))
 		}
 	})
 }

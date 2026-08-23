@@ -56,8 +56,8 @@ type fakeAuth struct {
 	loginErr error
 }
 
-func (f *fakeAuth) CheckPlayerPassword(ctx context.Context, username, password string) (database.Player, error) {
-	return database.Player{}, nil
+func (f *fakeAuth) CheckPlayerPassword(ctx context.Context, username, password string) (model.Player, error) {
+	return model.Player{}, nil
 }
 
 func (f *fakeAuth) LoginPlayer(ctx context.Context, username, password string) (model.AuthResult, error) {
@@ -65,14 +65,14 @@ func (f *fakeAuth) LoginPlayer(ctx context.Context, username, password string) (
 }
 
 type fakeFetch struct {
-	games        []database.Game
+	games        []model.Game
 	shared       *model.SharedData
-	interactions []database.Interaction
-	interaction  *database.Interaction
+	interactions []model.Interaction
+	interaction  *model.Interaction
 	err          error
 }
 
-func (f *fakeFetch) ListPlayerGames(ctx context.Context, playerId int64) ([]database.Game, error) {
+func (f *fakeFetch) ListPlayerGames(ctx context.Context, playerId int64) ([]model.Game, error) {
 	return f.games, f.err
 }
 
@@ -80,19 +80,19 @@ func (f *fakeFetch) GetSharedData(ctx context.Context, gameId int64) (*model.Sha
 	return f.shared, f.err
 }
 
-func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit, offset int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit, offset int64) ([]model.Interaction, error) {
 	return f.interactions, f.err
 }
 
-func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, gameId, playerId, limit, offset int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, gameId, playerId, limit, offset int64) ([]model.Interaction, error) {
 	return f.interactions, f.err
 }
 
-func (f *fakeFetch) FirstInteraction(ctx context.Context, gameId int64) (*database.Interaction, error) {
+func (f *fakeFetch) FirstInteraction(ctx context.Context, gameId int64) (*model.Interaction, error) {
 	return f.interaction, f.err
 }
 
-func (f *fakeFetch) LastInteraction(ctx context.Context, gameId int64) (*database.Interaction, error) {
+func (f *fakeFetch) LastInteraction(ctx context.Context, gameId int64) (*model.Interaction, error) {
 	return f.interaction, f.err
 }
 
@@ -148,7 +148,7 @@ func newTestRouter(t *testing.T, d Deps) *echo.Echo {
 func authRequest(t *testing.T, method, target string, playerID int64, body []byte) *http.Request {
 	t.Helper()
 	gen := &driven.JwtTokenGenerator{JwtSecret: testJWTSecret, TimeProvider: newFakeTime()}
-	token, err := gen.GenerateToken(database.Player{ID: playerID, Username: "neo"})
+	token, err := gen.GenerateToken(model.Player{ID: playerID, Username: "neo"})
 	if err != nil {
 		t.Fatalf("generate token: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestProtectedEndpoints_RequireAuth(t *testing.T) {
 
 func TestGetGames(t *testing.T) {
 	e := newTestRouter(t, Deps{
-		Fetch: &fakeFetch{games: []database.Game{{ID: 1, Name: "Alpha"}, {ID: 2, Name: "Beta"}}},
+		Fetch: &fakeFetch{games: []model.Game{{ID: 1, Name: "Alpha"}, {ID: 2, Name: "Beta"}}},
 	})
 
 	rec := do(t, e, authRequest(t, http.MethodGet, "/api/games", 7, nil))
@@ -320,10 +320,10 @@ func TestGetShared(t *testing.T) {
 }
 
 func TestGetInteractions(t *testing.T) {
-	interactions := []database.Interaction{
-		{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"},
+	interactions := []model.Interaction{
+		{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)},
 	}
-	single := &database.Interaction{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"}
+	single := &model.Interaction{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)}
 
 	t.Run("with access returns interactions (default limit)", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
@@ -453,8 +453,8 @@ func TestGetInteractions(t *testing.T) {
 // TestGetInteractions_Regression ensures the legacy no-query-param behavior is
 // identical to an explicit query=all.
 func TestGetInteractions_Regression(t *testing.T) {
-	interactions := []database.Interaction{
-		{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"},
+	interactions := []model.Interaction{
+		{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)},
 	}
 
 	getBody := func(target string) (string, int) {

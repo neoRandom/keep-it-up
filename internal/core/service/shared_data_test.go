@@ -1,25 +1,23 @@
 package service
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
 	"keep-it-up/internal/core/model"
-	"keep-it-up/internal/infrastructure/database"
 )
 
 func TestBuildSharedData_ComputesValidFromDeadline(t *testing.T) {
 	// A single save at 12:00:00 UTC with a 60s duration sets the deadline to
 	// 12:01:00 UTC.
-	interactions := []database.Interaction{
+	interactions := []model.Interaction{
 		{
 			ID:         1,
 			GameID:     5,
-			PlayerID:   sql.NullInt64{Int64: 1, Valid: true},
+			PlayerID:   intPtr(1),
 			Action:     "saved",
-			OccurredAt: "2026-08-22T12:00:00Z",
-			SavedBy:    sql.NullInt64{Int64: 60, Valid: true},
+			OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC),
+			SavedBy:    intPtr(60),
 		},
 	}
 
@@ -59,21 +57,21 @@ func TestBuildSharedData_PausedGameStaysValid(t *testing.T) {
 	// LastPausedAt (12:00:30) is after LastSavedAt (12:00:00) and before
 	// DeadlineAt (12:01:00) with Status == paused, so the game is valid
 	// even when "now" is far past the deadline.
-	interactions := []database.Interaction{
+	interactions := []model.Interaction{
 		{
 			ID:         1,
 			GameID:     5,
-			PlayerID:   sql.NullInt64{Int64: 1, Valid: true},
+			PlayerID:   intPtr(1),
 			Action:     "saved",
-			OccurredAt: "2026-08-22T12:00:00Z",
-			SavedBy:    sql.NullInt64{Int64: 60, Valid: true},
+			OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC),
+			SavedBy:    intPtr(60),
 		},
 		{
 			ID:         2,
 			GameID:     5,
-			PlayerID:   sql.NullInt64{Int64: 1, Valid: true},
+			PlayerID:   intPtr(1),
 			Action:     "paused",
-			OccurredAt: "2026-08-22T12:00:30Z",
+			OccurredAt: time.Date(2026, 8, 22, 12, 0, 30, 0, time.UTC),
 		},
 	}
 
@@ -104,14 +102,14 @@ func TestBuildSharedData_PausedGameStaysValid(t *testing.T) {
 func TestBuildSharedData_PlayingAfterDeadlineInvalid(t *testing.T) {
 	// A game that is playing (not paused) with "now" past the deadline must
 	// remain invalid — the paused exception must not leak into other states.
-	interactions := []database.Interaction{
+	interactions := []model.Interaction{
 		{
 			ID:         1,
 			GameID:     5,
-			PlayerID:   sql.NullInt64{Int64: 1, Valid: true},
+			PlayerID:   intPtr(1),
 			Action:     "saved",
-			OccurredAt: "2026-08-22T12:00:00Z",
-			SavedBy:    sql.NullInt64{Int64: 60, Valid: true},
+			OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC),
+			SavedBy:    intPtr(60),
 		},
 	}
 
@@ -175,4 +173,8 @@ func TestComputeValid_PausedBoundaryConditions(t *testing.T) {
 			t.Errorf("Valid = %v, want false when pause not after last save", s.Valid)
 		}
 	})
+}
+
+func intPtr(v int64) *int64 {
+	return &v
 }
