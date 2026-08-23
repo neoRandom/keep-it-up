@@ -5,22 +5,39 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
-func TestLoad(t *testing.T) {
-	// LoadEnv reads ".env" if present; ensure a missing file doesn't break the test.
-	oldJWT := os.Getenv("JWT_SECRET")
-	oldAddr := os.Getenv("SERVER_ADDRESS")
-	oldDB := os.Getenv("GOOSE_DBSTRING")
-	defer func() {
-		_ = os.Setenv("JWT_SECRET", oldJWT)
-		_ = os.Setenv("SERVER_ADDRESS", oldAddr)
-		_ = os.Setenv("GOOSE_DBSTRING", oldDB)
-	}()
+// idempotencyEnvNames are the env vars introduced by idempotency support. They
+// are restored around tests that mutate the environment.
+var idempotencyEnvNames = []string{"VALKEY_ADDRESS", "IDEMPOTENCY_TTL", "IDEMPOTENCY_HEADER"}
 
+// setRequiredEnv sets every required variable so individual missing-variable
+// tests can unset exactly one. Callers must defer restoreEnv.
+func setRequiredEnv() map[string]string {
+	old := map[string]string{}
+	for _, name := range append([]string{"JWT_SECRET", "SERVER_ADDRESS", "GOOSE_DBSTRING"}, idempotencyEnvNames...) {
+		old[name] = os.Getenv(name)
+	}
 	_ = os.Setenv("JWT_SECRET", "secret")
 	_ = os.Setenv("SERVER_ADDRESS", ":8080")
 	_ = os.Setenv("GOOSE_DBSTRING", "db.sqlite")
+	_ = os.Setenv("VALKEY_ADDRESS", "localhost:6379")
+	_ = os.Setenv("IDEMPOTENCY_TTL", "24h")
+	_ = os.Setenv("IDEMPOTENCY_HEADER", "Idempotency-Key")
+	return old
+}
+
+func restoreEnv(old map[string]string) {
+	for name, val := range old {
+		_ = os.Setenv(name, val)
+	}
+}
+
+func TestLoad(t *testing.T) {
+	// LoadEnv reads ".env" if present; ensure a missing file doesn't break the test.
+	old := setRequiredEnv()
+	defer restoreEnv(old)
 
 	cfg, err := Load()
 	if err != nil {
@@ -39,22 +56,63 @@ func TestLoad(t *testing.T) {
 	if cfg.DBString != wantDB {
 		t.Errorf("DBString = %q, want %q", cfg.DBString, wantDB)
 	}
+	if cfg.ValkeyAddress != "localhost:6379" {
+		t.Errorf("ValkeyAddress = %q, want %q", cfg.ValkeyAddress, "localhost:6379")
+	}
+	if cfg.IdempotencyTTL != 24*time.Hour {
+		t.Errorf("IdempotencyTTL = %v, want %v", cfg.IdempotencyTTL, 24*time.Hour)
+	}
+	if cfg.IdempotencyHeader != "Idempotency-Key" {
+		t.Errorf("IdempotencyHeader = %q, want %q", cfg.IdempotencyHeader, "Idempotency-Key")
+	}
+}
+
+func TestLoadMissingValkeyAddress(t *testing.T) {
+	old := setRequiredEnv()
+	defer restoreEnv(old)
+	_ = os.Setenv("VALKEY_ADDRESS", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for missing VALKEY_ADDRESS, got nil")
+	}
+	if !strings.Contains(err.Error(), "VALKEY_ADDRESS") {
+		t.Errorf("error = %q, want mention of VALKEY_ADDRESS", err)
+	}
+}
+
+func TestLoadInvalidIdempotencyTTL(t *testing.T) {
+	old := setRequiredEnv()
+	defer restoreEnv(old)
+	_ = os.Setenv("IDEMPOTENCY_TTL", "not-a-duration")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for invalid IDEMPOTENCY_TTL, got nil")
+	}
+	if !strings.Contains(err.Error(), "IDEMPOTENCY_TTL") {
+		t.Errorf("error = %q, want mention of IDEMPOTENCY_TTL", err)
+	}
+}
+
+func TestLoadMissingIdempotencyHeader(t *testing.T) {
+	old := setRequiredEnv()
+	defer restoreEnv(old)
+	_ = os.Setenv("IDEMPOTENCY_HEADER", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for missing IDEMPOTENCY_HEADER, got nil")
+	}
+	if !strings.Contains(err.Error(), "IDEMPOTENCY_HEADER") {
+		t.Errorf("error = %q, want mention of IDEMPOTENCY_HEADER", err)
+	}
 }
 
 func TestLoadMissingJWTSecret(t *testing.T) {
-	oldJWT := os.Getenv("JWT_SECRET")
+	old := setRequiredEnv()
+	defer restoreEnv(old)
 	_ = os.Setenv("JWT_SECRET", "")
-	defer func() { _ = os.Setenv("JWT_SECRET", oldJWT) }()
-
-	// Ensure the other required vars are set so only JWT_SECRET is missing.
-	oldAddr := os.Getenv("SERVER_ADDRESS")
-	oldDB := os.Getenv("GOOSE_DBSTRING")
-	defer func() {
-		_ = os.Setenv("SERVER_ADDRESS", oldAddr)
-		_ = os.Setenv("GOOSE_DBSTRING", oldDB)
-	}()
-	_ = os.Setenv("SERVER_ADDRESS", ":8080")
-	_ = os.Setenv("GOOSE_DBSTRING", "db.sqlite")
 
 	_, err := Load()
 	if err == nil {
@@ -66,18 +124,9 @@ func TestLoadMissingJWTSecret(t *testing.T) {
 }
 
 func TestLoadMissingServerAddress(t *testing.T) {
-	oldAddr := os.Getenv("SERVER_ADDRESS")
+	old := setRequiredEnv()
+	defer restoreEnv(old)
 	_ = os.Setenv("SERVER_ADDRESS", "")
-	defer func() { _ = os.Setenv("SERVER_ADDRESS", oldAddr) }()
-
-	oldJWT := os.Getenv("JWT_SECRET")
-	oldDB := os.Getenv("GOOSE_DBSTRING")
-	defer func() {
-		_ = os.Setenv("JWT_SECRET", oldJWT)
-		_ = os.Setenv("GOOSE_DBSTRING", oldDB)
-	}()
-	_ = os.Setenv("JWT_SECRET", "secret")
-	_ = os.Setenv("GOOSE_DBSTRING", "db.sqlite")
 
 	_, err := Load()
 	if err == nil {

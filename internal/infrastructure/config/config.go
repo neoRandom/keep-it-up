@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/util"
@@ -12,9 +13,12 @@ import (
 // Config holds the runtime configuration for the server, loaded from the
 // environment (and the dotenv file, if present).
 type Config struct {
-	JWTSecret     string
-	ServerAddress string
-	DBString      string
+	JWTSecret         string
+	ServerAddress     string
+	DBString          string
+	ValkeyAddress     string
+	IdempotencyTTL    time.Duration
+	IdempotencyHeader string
 }
 
 // Load reads the dotenv file and the process environment, resolving the values
@@ -38,9 +42,30 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("failed to get dbstring absolute path: %w", err)
 	}
 
+	valkeyAddress := os.Getenv("VALKEY_ADDRESS")
+	if valkeyAddress == "" {
+		return Config{}, fmt.Errorf("missing required environment variable VALKEY_ADDRESS")
+	}
+
+	idempotencyTTL, err := time.ParseDuration(os.Getenv("IDEMPOTENCY_TTL"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid IDEMPOTENCY_TTL: %w", err)
+	}
+	if idempotencyTTL <= 0 {
+		return Config{}, fmt.Errorf("IDEMPOTENCY_TTL must be a positive duration")
+	}
+
+	idempotencyHeader := os.Getenv("IDEMPOTENCY_HEADER")
+	if idempotencyHeader == "" {
+		return Config{}, fmt.Errorf("missing required environment variable IDEMPOTENCY_HEADER")
+	}
+
 	return Config{
-		JWTSecret:     jwtSecret,
-		ServerAddress: addr,
-		DBString:      dbString,
+		JWTSecret:         jwtSecret,
+		ServerAddress:     addr,
+		DBString:          dbString,
+		ValkeyAddress:     valkeyAddress,
+		IdempotencyTTL:    idempotencyTTL,
+		IdempotencyHeader: idempotencyHeader,
 	}, nil
 }

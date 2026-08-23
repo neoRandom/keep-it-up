@@ -30,6 +30,8 @@ const (
 	msgGameNotFound           = "Game not found or inaccessible"
 	msgGameNotPlaying         = "Game is not currently playing"
 	msgGameNotPaused          = "Game is not currently paused"
+	msgInvalidIdempotencyKey  = "Invalid Idempotency-Key"
+	msgIdempotencyInProgress  = "A request with this Idempotency-Key is already in progress"
 )
 
 type gameDTO struct {
