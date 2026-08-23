@@ -414,7 +414,7 @@ func (c *CLI) runFetch(ctx context.Context, args []string) error {
 		if err != nil {
 			return fmt.Errorf("fetch interactions: invalid limit %q: %w", rest[1], err)
 		}
-		interactions, err := c.d.Fetch.ListInteractions(ctx, gameID, limit)
+		interactions, err := c.d.Fetch.ListInteractions(ctx, gameID, limit, 0)
 		if err != nil {
 			return fmt.Errorf("fetch interactions: %w", err)
 		}

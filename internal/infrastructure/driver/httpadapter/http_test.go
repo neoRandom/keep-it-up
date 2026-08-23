@@ -58,7 +58,7 @@ func (f *fakeFetch) GetSharedData(ctx context.Context, gameId int64) (*model.Sha
 	return f.shared, f.err
 }
 
-func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit, offset int64) ([]database.Interaction, error) {
 	return f.interactions, f.err
 }
 

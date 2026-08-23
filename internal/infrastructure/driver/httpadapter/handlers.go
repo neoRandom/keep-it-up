@@ -170,7 +170,7 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 		return nil
 	}
 
-	interactions, err := h.d.Fetch.ListInteractions(ctx.Request().Context(), gameID, limit)
+	interactions, err := h.d.Fetch.ListInteractions(ctx.Request().Context(), gameID, limit, 0)
 	if err != nil {
 		log.Printf("list interactions error: %v", err)
 		return internal(ctx)
