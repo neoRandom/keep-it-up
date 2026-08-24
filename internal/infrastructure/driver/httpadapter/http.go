@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"keep-it-up/internal/application/model"
+	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/core/port"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -98,7 +98,7 @@ func (h *HTTPAdapter) routes(e *echo.Echo) {
 		// Parse into typed claims so handlers can read the actor's UserID;
 		// otherwise the middleware defaults to jwt.MapClaims and the cast fails.
 		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
-			return &model.JwtPlayerClaims{}
+			return &driven.JwtClaims{}
 		},
 	}))
 

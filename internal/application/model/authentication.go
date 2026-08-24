@@ -1,9 +1,12 @@
 package model
 
-import "github.com/golang-jwt/jwt/v5"
+import "time"
 
+// JwtPlayerClaims are the claims carried in an authentication token, expressed
+// as a framework-free struct. JWT-specific (de)serialization lives in the
+// driven adapter that talks to the JWT library.
 type JwtPlayerClaims struct {
-	jwt.RegisteredClaims
-	UserID   int64  `json:"user_id"`
-	Username string `json:"username"`
+	ExpiresAt time.Time `json:"exp"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"username"`
 }

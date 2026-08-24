@@ -5,9 +5,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
+)
+
+var (
+	ErrCannotSaveWhilePaused = errors.New("cannot save while paused")
+	ErrCannotPause           = errors.New("cannot pause")
+	ErrCannotResume          = errors.New("cannot resume")
 )
 
 type GameCommands struct {
@@ -56,6 +63,9 @@ func (uc *GameCommands) SaveGame(
 		SavedBy:    sql.NullInt64{Int64: duration, Valid: true},
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "cannot save while paused") {
+			return ErrCannotSaveWhilePaused
+		}
 		return fmt.Errorf("failed to save game %d: %w", gameId, err)
 	}
 
@@ -92,6 +102,9 @@ func (uc *GameCommands) ResumeGame(
 		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "cannot resume") {
+			return ErrCannotResume
+		}
 		return fmt.Errorf("failed to resume game %d: %w", gameId, err)
 	}
 
@@ -128,6 +141,9 @@ func (uc *GameCommands) PauseGame(
 		OccurredAt: t.Format(constant.DBDatetimeFormat),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "cannot pause") {
+			return ErrCannotPause
+		}
 		return fmt.Errorf("failed to pause game %d: %w", gameId, err)
 	}
 

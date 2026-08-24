@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -510,7 +509,7 @@ func TestSaveGame(t *testing.T) {
 	t.Run("state machine conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{saveErr: errors.New("cannot save while paused")},
+			Commands: &fakeCommands{saveErr: usecase.ErrCannotSaveWhilePaused},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/save?gameId=3", 7, []byte(`{"duration":60}`)))
 		if rec.Code != http.StatusConflict {
@@ -684,7 +683,7 @@ func TestPlayPause(t *testing.T) {
 	t.Run("play conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{resumeErr: errors.New("cannot resume")},
+			Commands: &fakeCommands{resumeErr: usecase.ErrCannotResume},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/play?gameId=3", 7, nil))
 		if rec.Code != http.StatusConflict {
@@ -703,7 +702,7 @@ func TestPlayPause(t *testing.T) {
 	t.Run("pause conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{pauseErr: errors.New("cannot pause")},
+			Commands: &fakeCommands{pauseErr: usecase.ErrCannotPause},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/pause?gameId=3", 7, nil))
 		if rec.Code != http.StatusConflict {

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"keep-it-up/internal/application/model"
 	"keep-it-up/internal/infrastructure/constant"
 	coremodel "keep-it-up/internal/core/model"
 
@@ -21,9 +20,9 @@ func newFixedTime() *fixedTime {
 	return &fixedTime{now: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)}
 }
 
-func parseToken(t *testing.T, raw, secret string) *model.JwtPlayerClaims {
+func parseToken(t *testing.T, raw, secret string) *JwtClaims {
 	t.Helper()
-	claims := &model.JwtPlayerClaims{}
+	claims := &JwtClaims{}
 	token, err := jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, errors.New("unexpected signing method")
@@ -81,7 +80,7 @@ func TestGenerateToken_RejectsWrongSecret(t *testing.T) {
 		t.Fatalf("GenerateToken: %v", err)
 	}
 
-	claims := &model.JwtPlayerClaims{}
+	claims := &JwtClaims{}
 	_, err = jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte("wrong"), nil
 	})
@@ -104,4 +103,26 @@ func TestGenerateToken_Errors(t *testing.T) {
 			t.Fatal("expected error for nil time provider")
 		}
 	})
+}
+func TestParseToken_ReturnsApplicationClaims(t *testing.T) {
+	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime()}
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 7, Username: "neo"})
+	if err != nil {
+		t.Fatalf("GenerateToken: %v", err)
+	}
+
+	claims, err := gen.ParseToken(raw, "secret")
+	if err != nil {
+		t.Fatalf("ParseToken: %v", err)
+	}
+	if claims.UserID != 7 {
+		t.Errorf("UserID = %d, want 7", claims.UserID)
+	}
+	if claims.Username != "neo" {
+		t.Errorf("Username = %q, want %q", claims.Username, "neo")
+	}
+	wantExp := newFixedTime().now.Add(constant.SessionLifetime)
+	if !claims.ExpiresAt.Equal(wantExp) {
+		t.Errorf("ExpiresAt = %v, want %v", claims.ExpiresAt, wantExp)
+	}
 }

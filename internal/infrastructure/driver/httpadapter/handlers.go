@@ -6,9 +6,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"keep-it-up/internal/application/model"
+	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/constant"
 	coremodel "keep-it-up/internal/core/model"
@@ -257,7 +256,7 @@ func (h *HTTPAdapter) playerID(c *echo.Context) (int64, bool) {
 	if !ok {
 		return 0, false
 	}
-	claims, ok := token.Claims.(*model.JwtPlayerClaims)
+	claims, ok := token.Claims.(*driven.JwtClaims)
 	if !ok || claims.UserID < 1 {
 		return 0, false
 	}
@@ -374,20 +373,12 @@ func internal(c *echo.Context) error {
 // commandError maps a GameCommands error to a response: state-machine
 // violations become 409, everything else becomes a logged 500.
 func commandError(c *echo.Context, err error, logMsg, conflictMsg string) error {
-	if conflictStatusFromErr(err) {
+	if errors.Is(err, usecase.ErrCannotSaveWhilePaused) ||
+		errors.Is(err, usecase.ErrCannotPause) ||
+		errors.Is(err, usecase.ErrCannotResume) {
 		return errorJSON(c, http.StatusConflict, conflictMsg)
 	}
 	log.Printf("%s: %v", logMsg, err)
 	return internal(c)
 }
 
-// conflictStatusFromErr detects SQLite state-machine trigger violations.
-func conflictStatusFromErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "cannot save while paused") ||
-		strings.Contains(msg, "cannot pause") ||
-		strings.Contains(msg, "cannot resume")
-}
