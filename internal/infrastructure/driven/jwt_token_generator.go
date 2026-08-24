@@ -4,18 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"keep-it-up/internal/application/model"
-	"keep-it-up/internal/core/port"
 	coremodel "keep-it-up/internal/core/model"
-	"keep-it-up/internal/infrastructure/constant"
+	"keep-it-up/internal/core/port"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type JwtTokenGenerator struct {
-	JwtSecret    string
-	TimeProvider port.TimeProvider
+	JwtSecret       string
+	TimeProvider    port.TimeProvider
+	SessionLifetime time.Duration
 }
 
 // JwtClaims is the JWT-library-specific claims representation used for signing
@@ -43,7 +44,7 @@ func (g *JwtTokenGenerator) GenerateToken(player coremodel.Player) (string, erro
 
 	claims := &JwtClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(t.Add(constant.SessionLifetime)),
+			ExpiresAt: jwt.NewNumericDate(t.Add(g.SessionLifetime)),
 		},
 		UserID:   player.ID,
 		Username: player.Username,

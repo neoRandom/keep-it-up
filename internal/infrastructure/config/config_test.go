@@ -65,6 +65,12 @@ func TestLoad(t *testing.T) {
 	if cfg.IdempotencyHeader != "Idempotency-Key" {
 		t.Errorf("IdempotencyHeader = %q, want %q", cfg.IdempotencyHeader, "Idempotency-Key")
 	}
+	if cfg.SessionLifetime != 72*time.Hour {
+		t.Errorf("SessionLifetime = %v, want %v", cfg.SessionLifetime, 72*time.Hour)
+	}
+	if cfg.InteractionsLimit != 20 {
+		t.Errorf("InteractionsLimit = %d, want 20", cfg.InteractionsLimit)
+	}
 }
 
 func TestLoadMissingValkeyAddress(t *testing.T) {

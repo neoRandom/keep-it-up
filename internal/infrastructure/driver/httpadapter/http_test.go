@@ -137,7 +137,7 @@ const testJWTSecret = "test-secret-for-unit-tests"
 func newTestRouter(t *testing.T, d Deps) *echo.Echo {
 	t.Helper()
 	e := echo.New()
-	New(":0", testJWTSecret, newFakeTime(), d).routes(e)
+	New(":0", testJWTSecret, newFakeTime(), d, 72*time.Hour, 20).routes(e)
 	return e
 }
 
@@ -146,7 +146,7 @@ func newTestRouter(t *testing.T, d Deps) *echo.Echo {
 // the middleware's parsing path (and NewClaimsFunc) is exercised genuinely.
 func authRequest(t *testing.T, method, target string, playerID int64, body []byte) *http.Request {
 	t.Helper()
-	gen := &driven.JwtTokenGenerator{JwtSecret: testJWTSecret, TimeProvider: newFakeTime()}
+	gen := &driven.JwtTokenGenerator{JwtSecret: testJWTSecret, TimeProvider: newFakeTime(), SessionLifetime: 72 * time.Hour}
 	token, err := gen.GenerateToken(model.Player{ID: playerID, Username: "neo"})
 	if err != nil {
 		t.Fatalf("generate token: %v", err)
@@ -560,7 +560,7 @@ func newIntegrationRouter(t *testing.T) *integrationDeps {
 	New(":0", testJWTSecret, newFakeTime(), Deps{
 		Fetch:  fetch,
 		Access: access,
-	}).routes(e)
+}, 72*time.Hour, 20).routes(e)
 	return &integrationDeps{e: e, commands: commands, access: access}
 }
 

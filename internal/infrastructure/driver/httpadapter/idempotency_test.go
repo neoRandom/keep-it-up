@@ -97,7 +97,7 @@ func (a *countingAuth) CheckPlayerPassword(_ context.Context, _, _ string) (mode
 func newIdempotentRouter(t *testing.T, d Deps, store IdempotencyStore) *echo.Echo {
 	t.Helper()
 	e := echo.New()
-	New(":0", testJWTSecret, newFakeTime(), d, WithIdempotency(store, time.Minute, "Idempotency-Key")).routes(e)
+	New(":0", testJWTSecret, newFakeTime(), d, 72*time.Hour, 20, WithIdempotency(store, time.Minute, "Idempotency-Key")).routes(e)
 	return e
 }
 

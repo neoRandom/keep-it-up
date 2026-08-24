@@ -76,8 +76,9 @@ func run() int {
 		Auth: usecase.NewAuthentication(
 			q,
 			&driven.JwtTokenGenerator{
-				JwtSecret:    cfg.JWTSecret,
-				TimeProvider: timeProvider,
+				JwtSecret:       cfg.JWTSecret,
+				TimeProvider:    timeProvider,
+				SessionLifetime: cfg.SessionLifetime,
 			},
 		),
 		Fetch:    fetching,
@@ -90,6 +91,8 @@ func run() int {
 		cfg.JWTSecret,
 		timeProvider,
 		deps,
+		cfg.SessionLifetime,
+		cfg.InteractionsLimit,
 		httpadapter.WithIdempotency(
 			driven.NewValkeyIdempotencyStore(valkeyClient),
 			cfg.IdempotencyTTL,

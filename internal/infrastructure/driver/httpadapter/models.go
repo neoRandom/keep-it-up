@@ -7,9 +7,6 @@ import (
 // SessionCookieName matches the `sessionCookie` security scheme in api/openapi.yaml.
 const SessionCookieName string = "session"
 
-// defaultInteractionsLimit is used when the `limit` query param is omitted.
-const defaultInteractionsLimit int64 = 20
-
 // defaultInteractionsOffset is used when the `offset` query param is omitted.
 const defaultInteractionsOffset int64 = 0
 

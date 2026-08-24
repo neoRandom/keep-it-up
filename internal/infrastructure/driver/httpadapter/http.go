@@ -33,6 +33,9 @@ type HTTPAdapter struct {
 	idem       IdempotencyStore
 	idemTTL    time.Duration
 	idemHeader string
+
+	sessionLifetime   time.Duration
+	defaultInteractionsLimit int64
 }
 
 // Option configures an HTTPAdapter. Kept separate from the constructor so the
@@ -49,8 +52,8 @@ func WithIdempotency(store IdempotencyStore, ttl time.Duration, header string) O
 	}
 }
 
-func New(addr string, jwtSecret string, tp port.TimeProvider, d Deps, opts ...Option) *HTTPAdapter {
-	h := &HTTPAdapter{addr: addr, jwtSecret: jwtSecret, tp: tp, d: d}
+func New(addr string, jwtSecret string, tp port.TimeProvider, d Deps, sessionLifetime time.Duration, interactionsLimit int64, opts ...Option) *HTTPAdapter {
+	h := &HTTPAdapter{addr: addr, jwtSecret: jwtSecret, tp: tp, d: d, sessionLifetime: sessionLifetime, defaultInteractionsLimit: interactionsLimit}
 	for _, opt := range opts {
 		opt(h)
 	}

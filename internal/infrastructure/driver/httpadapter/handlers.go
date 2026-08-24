@@ -49,7 +49,7 @@ func (h *HTTPAdapter) handleLogin(ctx *echo.Context) error {
 	ctx.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
 		Value:    res.Token,
-		Expires:  now.Add(constant.SessionLifetime),
+		Expires:  now.Add(h.sessionLifetime),
 		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
@@ -162,7 +162,7 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 		return badRequest(ctx, "Invalid query")
 	}
 
-	limit, err := interactionsLimit(ctx)
+	limit, err := h.interactionsLimit(ctx)
 	if err != nil {
 		log.Printf("bad request: %v", err)
 		return badRequest(ctx, "Invalid limit")
@@ -301,10 +301,10 @@ func gameIDFromQuery(c *echo.Context) (int64, error) {
 
 // interactionsLimit returns the `limit` query param, defaulting to
 // defaultInteractionsLimit. Values below 1 are rejected.
-func interactionsLimit(c *echo.Context) (int64, error) {
+func (h *HTTPAdapter) interactionsLimit(c *echo.Context) (int64, error) {
 	raw := c.QueryParam("limit")
 	if raw == "" {
-		return defaultInteractionsLimit, nil
+		return h.defaultInteractionsLimit, nil
 	}
 	limit, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
