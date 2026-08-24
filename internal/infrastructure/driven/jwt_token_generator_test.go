@@ -5,9 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"keep-it-up/internal/application/model"
-	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
+	coremodel "keep-it-up/internal/core/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -21,9 +19,9 @@ func newFixedTime() *fixedTime {
 	return &fixedTime{now: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)}
 }
 
-func parseToken(t *testing.T, raw, secret string) *model.JwtPlayerClaims {
+func parseToken(t *testing.T, raw, secret string) *JwtClaims {
 	t.Helper()
-	claims := &model.JwtPlayerClaims{}
+	claims := &JwtClaims{}
 	token, err := jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.SigningMethodHS256 {
 			return nil, errors.New("unexpected signing method")
@@ -40,9 +38,9 @@ func parseToken(t *testing.T, raw, secret string) *model.JwtPlayerClaims {
 }
 
 func TestGenerateToken_ValidClaims(t *testing.T) {
-	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime()}
+	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime(), SessionLifetime: 72 * time.Hour}
 
-	raw, err := gen.GenerateToken(database.Player{ID: 42, Username: "neo"})
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 42, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
@@ -57,15 +55,15 @@ func TestGenerateToken_ValidClaims(t *testing.T) {
 }
 
 func TestGenerateToken_ExpiryMatchesSessionLifetime(t *testing.T) {
-	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime()}
+	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime(), SessionLifetime: 72 * time.Hour}
 
-	raw, err := gen.GenerateToken(database.Player{ID: 1, Username: "neo"})
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 1, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
 
 	claims := parseToken(t, raw, "secret")
-	wantExp := newFixedTime().now.Add(constant.SessionLifetime)
+	wantExp := newFixedTime().now.Add(72 * time.Hour)
 	if claims.ExpiresAt == nil {
 		t.Fatal("ExpiresAt is nil")
 	}
@@ -75,13 +73,13 @@ func TestGenerateToken_ExpiryMatchesSessionLifetime(t *testing.T) {
 }
 
 func TestGenerateToken_RejectsWrongSecret(t *testing.T) {
-	gen := &JwtTokenGenerator{JwtSecret: "correct", TimeProvider: newFixedTime()}
-	raw, err := gen.GenerateToken(database.Player{ID: 1, Username: "neo"})
+	gen := &JwtTokenGenerator{JwtSecret: "correct", TimeProvider: newFixedTime(), SessionLifetime: 72 * time.Hour}
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 1, Username: "neo"})
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
 
-	claims := &model.JwtPlayerClaims{}
+	claims := &JwtClaims{}
 	_, err = jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte("wrong"), nil
 	})
@@ -92,16 +90,38 @@ func TestGenerateToken_RejectsWrongSecret(t *testing.T) {
 
 func TestGenerateToken_Errors(t *testing.T) {
 	t.Run("empty secret", func(t *testing.T) {
-		gen := &JwtTokenGenerator{JwtSecret: "  ", TimeProvider: newFixedTime()}
-		if _, err := gen.GenerateToken(database.Player{}); err == nil {
+		gen := &JwtTokenGenerator{JwtSecret: "  ", TimeProvider: newFixedTime(), SessionLifetime: 72 * time.Hour}
+		if _, err := gen.GenerateToken(coremodel.Player{}); err == nil {
 			t.Fatal("expected error for empty secret")
 		}
 	})
 
 	t.Run("nil time provider", func(t *testing.T) {
-		gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: nil}
-		if _, err := gen.GenerateToken(database.Player{}); err == nil {
+		gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: nil, SessionLifetime: 72 * time.Hour}
+		if _, err := gen.GenerateToken(coremodel.Player{}); err == nil {
 			t.Fatal("expected error for nil time provider")
 		}
 	})
+}
+func TestParseToken_ReturnsApplicationClaims(t *testing.T) {
+	gen := &JwtTokenGenerator{JwtSecret: "secret", TimeProvider: newFixedTime(), SessionLifetime: 72 * time.Hour}
+	raw, err := gen.GenerateToken(coremodel.Player{ID: 7, Username: "neo"})
+	if err != nil {
+		t.Fatalf("GenerateToken: %v", err)
+	}
+
+	claims, err := gen.ParseToken(raw, "secret")
+	if err != nil {
+		t.Fatalf("ParseToken: %v", err)
+	}
+	if claims.UserID != 7 {
+		t.Errorf("UserID = %d, want 7", claims.UserID)
+	}
+	if claims.Username != "neo" {
+		t.Errorf("Username = %q, want %q", claims.Username, "neo")
+	}
+	wantExp := newFixedTime().now.Add(72 * time.Hour)
+	if !claims.ExpiresAt.Equal(wantExp) {
+		t.Errorf("ExpiresAt = %v, want %v", claims.ExpiresAt, wantExp)
+	}
 }

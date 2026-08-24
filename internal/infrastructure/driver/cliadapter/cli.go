@@ -47,15 +47,8 @@ Nouns:
            pause  <game id> <player id>
 `
 
-// Deps groups the driver ports and I/O streams the CLI needs. It is a
-// struct rather than positional constructor params so call sites stay
-// self-documenting as the dependency count grows.
-//
-// The six fields mirror driver.go's interface segregation exactly (one
-// field per port) rather than collapsing them into a single composed
-// interface. See the design-notes reply for the trade-off against
-// composition — this file makes the conservative choice since it assumes
-// nothing about how internal/application/usecase structures its types.
+// Deps groups the driver ports and I/O streams the CLI needs.
+
 type Deps struct {
 	Games    port.GameManagement
 	Access   port.AccessManagement
@@ -93,7 +86,7 @@ func (c *CLI) Run(ctx context.Context, args []string) error {
 		return c.runPlayer(ctx, rest)
 	case "auth":
 		return c.runAuth(ctx, rest)
-	case "data":
+	case "fetch":
 		return c.runFetch(ctx, rest)
 	case "command":
 		return c.runCommand(ctx, rest)

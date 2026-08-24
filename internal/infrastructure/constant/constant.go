@@ -6,11 +6,6 @@ const DBDatetimeFormat string = time.RFC3339
 
 const EnvFilename string = ".env"
 
-// SessionLifetime is the shared lifetime of an authentication session. It is used
-// both for the login cookie expiry and the JWT exp claim so the two can never
-// drift apart (see TODO 4).
-const SessionLifetime time.Duration = 72 * time.Hour
-
 // Idempotency record states. These are shared between the Driver layer (which
 // owns the idempotency port) and the Driven Valkey adapter so the two never
 // drift apart on the stored value format.

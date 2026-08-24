@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/infrastructure/database/mapping"
 	"strings"
 )
 
@@ -11,19 +14,18 @@ type GameManagement struct {
 	q *database.Queries
 }
 
-func NewGameManagement(q *database.Queries) *GameManagement {
-	return &GameManagement{q: q}
+func NewGameManagement(q *database.Queries) (*GameManagement, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+	return &GameManagement{q: q}, nil
 }
 
-func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Game, error) {
-	if uc.q == nil {
-		return database.Game{}, fmt.Errorf("database queries are not initialized")
-	}
-
+func (uc *GameManagement) AddGame(ctx context.Context, name string) (model.Game, error) {
 	name = strings.TrimSpace(name)
 
 	if len(name) < 3 {
-		return database.Game{}, fmt.Errorf(
+		return model.Game{}, fmt.Errorf(
 			"game name cannot have less than 3 characters: '%s'",
 			name,
 		)
@@ -31,16 +33,12 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (database.Ga
 
 	game, err := uc.q.CreateGame(ctx, name)
 	if err != nil {
-		return database.Game{}, fmt.Errorf("failed to create game %q: %w", name, err)
+		return model.Game{}, fmt.Errorf("failed to create game %q: %w", name, err)
 	}
-	return game, nil
+	return mapping.ToDomainGame(game), nil
 }
 
 func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid game ID: %d", id)
 	}
@@ -64,10 +62,6 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 }
 
 func (uc *GameManagement) DeleteGame(ctx context.Context, id int64) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid game ID: %d", id)
 	}

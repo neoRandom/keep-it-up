@@ -3,11 +3,10 @@ package port
 import (
 	"context"
 	"keep-it-up/internal/core/model"
-	"keep-it-up/internal/infrastructure/database"
 )
 
 type GameManagement interface {
-	AddGame(ctx context.Context, name string) (database.Game, error)
+	AddGame(ctx context.Context, name string) (model.Game, error)
 	UpdateGame(ctx context.Context, id int64, name string) error
 	DeleteGame(ctx context.Context, id int64) error
 }
@@ -21,7 +20,7 @@ type AccessManagement interface {
 type PlayerManagement interface {
 	AddPlayer(
 		ctx context.Context, name, username, password string,
-	) (database.Player, error)
+	) (model.Player, error)
 	UpdatePlayerName(
 		ctx context.Context, playerId int64, name string,
 	) error
@@ -39,7 +38,7 @@ type PlayerManagement interface {
 type Authentication interface {
 	CheckPlayerPassword(
 		ctx context.Context, username, password string,
-	) (database.Player, error)
+	) (model.Player, error)
 	LoginPlayer(
 		ctx context.Context, username, password string,
 	) (model.AuthResult, error)
@@ -48,22 +47,22 @@ type Authentication interface {
 type DataFetching interface {
 	ListPlayerGames(
 		ctx context.Context, playerId int64,
-	) ([]database.Game, error)
+	) ([]model.Game, error)
 	GetSharedData(
 		ctx context.Context, gameId int64,
 	) (*model.SharedData, error)
 	ListInteractions(
 		ctx context.Context, gameId, limit, offset int64,
-	) ([]database.Interaction, error)
+	) ([]model.Interaction, error)
 	ListPlayerInteractions(
 		ctx context.Context, gameId, playerId, limit, offset int64,
-	) ([]database.Interaction, error)
+	) ([]model.Interaction, error)
 	FirstInteraction(
 		ctx context.Context, gameId int64,
-	) (*database.Interaction, error)
+	) (*model.Interaction, error)
 	LastInteraction(
 		ctx context.Context, gameId int64,
-	) (*database.Interaction, error)
+	) (*model.Interaction, error)
 }
 
 type GameCommands interface {

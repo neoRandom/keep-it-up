@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"keep-it-up/internal/infrastructure/constant"
@@ -19,6 +20,8 @@ type Config struct {
 	ValkeyAddress     string
 	IdempotencyTTL    time.Duration
 	IdempotencyHeader string
+	SessionLifetime   time.Duration
+	InteractionsLimit int64
 }
 
 // Load reads the dotenv file and the process environment, resolving the values
@@ -62,6 +65,31 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("missing required environment variable IDEMPOTENCY_HEADER")
 	}
 
+	// Optional with defaults: SESSION_LIFETIME (72h) and INTERACTIONS_LIMIT (20).
+	sessionLifetime := 72 * time.Hour
+	if raw := os.Getenv("SESSION_LIFETIME"); raw != "" {
+		d, err := time.ParseDuration(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid SESSION_LIFETIME: %w", err)
+		}
+		if d <= 0 {
+			return Config{}, fmt.Errorf("SESSION_LIFETIME must be positive, got %s", d)
+		}
+		sessionLifetime = d
+	}
+
+	interactionsLimit := int64(20)
+	if raw := os.Getenv("INTERACTIONS_LIMIT"); raw != "" {
+		n, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid INTERACTIONS_LIMIT: %w", err)
+		}
+		if n < 1 {
+			return Config{}, fmt.Errorf("INTERACTIONS_LIMIT must be at least 1, got %d", n)
+		}
+		interactionsLimit = n
+	}
+
 	return Config{
 		JWTSecret:         jwtSecret,
 		ServerAddress:     addr,
@@ -69,5 +97,7 @@ func Load() (Config, error) {
 		ValkeyAddress:     valkeyAddress,
 		IdempotencyTTL:    idempotencyTTL,
 		IdempotencyHeader: idempotencyHeader,
+		SessionLifetime:   sessionLifetime,
+		InteractionsLimit: interactionsLimit,
 	}, nil
 }

@@ -7,6 +7,8 @@ import (
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/core/model"
+	"keep-it-up/internal/infrastructure/database/mapping"
 	"keep-it-up/internal/infrastructure/util"
 	"strings"
 )
@@ -17,24 +19,20 @@ type PlayerManagement struct {
 }
 
 func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*PlayerManagement, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
 	if auth == nil {
 		return nil, errors.New("authentication is not initialized")
 	}
 	return &PlayerManagement{q: q, auth: auth}, nil
 }
 
-func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (database.Player, error) {
-	if uc.q == nil {
-		return database.Player{}, fmt.Errorf("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return database.Player{}, fmt.Errorf("authentication is not initialized")
-	}
-
+func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (model.Player, error) {
 	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"player name cannot have less than 2 characters: '%s'",
 			name,
 		)
@@ -43,14 +41,14 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	username = strings.TrimSpace(username)
 
 	if len(username) < 3 {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"username cannot have less than 3 characters: '%s'",
 			username,
 		)
 	}
 
 	if !util.IsAlphanumeric(username) {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"username isn't purely alphanumeric: '%s'",
 			username,
 		)
@@ -59,16 +57,16 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 	password = strings.TrimSpace(password)
 
 	if password == username {
-		return database.Player{}, errors.New("player password cannot be equal to its username")
+		return model.Player{}, errors.New("player password cannot be equal to its username")
 	}
 
 	if err := service.IsPasswordValid(password); err != nil {
-		return database.Player{}, err
+		return model.Player{}, err
 	}
 
 	hashedPassword, err := service.GeneratePasswordHash(password)
 	if err != nil {
-		return database.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
+		return model.Player{}, fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
 	player, err := uc.q.CreatePlayer(ctx, database.CreatePlayerParams{
@@ -77,16 +75,12 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 		HashedPassword: hashedPassword,
 	})
 	if err != nil {
-		return database.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
+		return model.Player{}, fmt.Errorf("failed to create player %q: %w", username, err)
 	}
-	return player, nil
+	return mapping.ToDomainPlayer(player), nil
 }
 
 func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64, name string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
@@ -107,13 +101,6 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64
 }
 
 func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int64, password string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return fmt.Errorf("authentication is not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid player ID: %d", id)
 	}
@@ -141,13 +128,6 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 func (uc *PlayerManagement) UpdatePlayerPassword(
 	ctx context.Context, username, currentPassword, newPassword string,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return errors.New("authentication is not initialized")
-	}
-
 	if strings.TrimSpace(username) == "" {
 		return errors.New("username cannot be empty string")
 	}
@@ -180,13 +160,6 @@ func (uc *PlayerManagement) UpdatePlayerPassword(
 func (uc *PlayerManagement) UpdatePlayerPasswordForce(
 	ctx context.Context, username, password string,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return errors.New("authentication is not initialized")
-	}
-
 	if strings.TrimSpace(username) == "" {
 		return errors.New("username cannot be empty string")
 	}
@@ -207,10 +180,6 @@ func (uc *PlayerManagement) UpdatePlayerPasswordForce(
 }
 
 func (uc *PlayerManagement) DeletePlayer(ctx context.Context, playerId int64) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}

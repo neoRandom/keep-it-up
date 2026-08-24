@@ -6,12 +6,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"keep-it-up/internal/application/model"
+	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/application/usecase"
 	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
+	coremodel "keep-it-up/internal/core/model"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v5"
@@ -50,7 +49,7 @@ func (h *HTTPAdapter) handleLogin(ctx *echo.Context) error {
 	ctx.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
 		Value:    res.Token,
-		Expires:  now.Add(constant.SessionLifetime),
+		Expires:  now.Add(h.sessionLifetime),
 		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
@@ -163,7 +162,7 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 		return badRequest(ctx, "Invalid query")
 	}
 
-	limit, err := interactionsLimit(ctx)
+	limit, err := h.interactionsLimit(ctx)
 	if err != nil {
 		log.Printf("bad request: %v", err)
 		return badRequest(ctx, "Invalid limit")
@@ -220,16 +219,16 @@ func (h *HTTPAdapter) handleListInteractions(ctx *echo.Context) error {
 }
 
 // toInteractionDTOs maps interaction rows to client-facing DTOs.
-func toInteractionDTOs(interactions []database.Interaction) []interactionDTO {
+func toInteractionDTOs(interactions []coremodel.Interaction) []interactionDTO {
 	dtos := make([]interactionDTO, 0, len(interactions))
 	for _, i := range interactions {
 		dtos = append(dtos, interactionDTO{
 			ID:         i.ID,
 			GameID:     i.GameID,
-			PlayerID:   nullableInt64(i.PlayerID),
+			PlayerID:   i.PlayerID,
 			Action:     i.Action,
-			OccurredAt: i.OccurredAt,
-			SavedBy:    nullableInt64(i.SavedBy),
+			OccurredAt: i.OccurredAt.Format(constant.DBDatetimeFormat),
+			SavedBy:    i.SavedBy,
 		})
 	}
 	return dtos
@@ -237,17 +236,17 @@ func toInteractionDTOs(interactions []database.Interaction) []interactionDTO {
 
 // interactionDTOFrom maps a single interaction (or nil) to a DTO, letting
 // first/last return JSON null when a game has no interactions.
-func interactionDTOFrom(i *database.Interaction) *interactionDTO {
+func interactionDTOFrom(i *coremodel.Interaction) *interactionDTO {
 	if i == nil {
 		return nil
 	}
 	return &interactionDTO{
 		ID:         i.ID,
 		GameID:     i.GameID,
-		PlayerID:   nullableInt64(i.PlayerID),
+		PlayerID:   i.PlayerID,
 		Action:     i.Action,
-		OccurredAt: i.OccurredAt,
-		SavedBy:    nullableInt64(i.SavedBy),
+		OccurredAt: i.OccurredAt.Format(constant.DBDatetimeFormat),
+		SavedBy:    i.SavedBy,
 	}
 }
 
@@ -257,7 +256,7 @@ func (h *HTTPAdapter) playerID(c *echo.Context) (int64, bool) {
 	if !ok {
 		return 0, false
 	}
-	claims, ok := token.Claims.(*model.JwtPlayerClaims)
+	claims, ok := token.Claims.(*driven.JwtClaims)
 	if !ok || claims.UserID < 1 {
 		return 0, false
 	}
@@ -302,10 +301,10 @@ func gameIDFromQuery(c *echo.Context) (int64, error) {
 
 // interactionsLimit returns the `limit` query param, defaulting to
 // defaultInteractionsLimit. Values below 1 are rejected.
-func interactionsLimit(c *echo.Context) (int64, error) {
+func (h *HTTPAdapter) interactionsLimit(c *echo.Context) (int64, error) {
 	raw := c.QueryParam("limit")
 	if raw == "" {
-		return defaultInteractionsLimit, nil
+		return h.defaultInteractionsLimit, nil
 	}
 	limit, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
@@ -374,20 +373,12 @@ func internal(c *echo.Context) error {
 // commandError maps a GameCommands error to a response: state-machine
 // violations become 409, everything else becomes a logged 500.
 func commandError(c *echo.Context, err error, logMsg, conflictMsg string) error {
-	if conflictStatusFromErr(err) {
+	if errors.Is(err, usecase.ErrCannotSaveWhilePaused) ||
+		errors.Is(err, usecase.ErrCannotPause) ||
+		errors.Is(err, usecase.ErrCannotResume) {
 		return errorJSON(c, http.StatusConflict, conflictMsg)
 	}
 	log.Printf("%s: %v", logMsg, err)
 	return internal(c)
 }
 
-// conflictStatusFromErr detects SQLite state-machine trigger violations.
-func conflictStatusFromErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "cannot save while paused") ||
-		strings.Contains(msg, "cannot pause") ||
-		strings.Contains(msg, "cannot resume")
-}

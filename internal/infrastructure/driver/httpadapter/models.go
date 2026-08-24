@@ -1,15 +1,11 @@
 package httpadapter
 
 import (
-	"database/sql"
 	"time"
 )
 
 // SessionCookieName matches the `sessionCookie` security scheme in api/openapi.yaml.
 const SessionCookieName string = "session"
-
-// defaultInteractionsLimit is used when the `limit` query param is omitted.
-const defaultInteractionsLimit int64 = 20
 
 // defaultInteractionsOffset is used when the `offset` query param is omitted.
 const defaultInteractionsOffset int64 = 0
@@ -61,12 +57,3 @@ type saveRequest struct {
 	Duration int64 `json:"duration"`
 }
 
-// nullableInt64 maps a database.NullInt64 to *int64, nil when invalid, so
-// nullable IDs serialize as JSON null instead of an object.
-func nullableInt64(v sql.NullInt64) *int64 {
-	if !v.Valid {
-		return nil
-	}
-	x := v.Int64
-	return &x
-}

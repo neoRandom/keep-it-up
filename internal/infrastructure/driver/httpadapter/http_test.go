@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -56,8 +55,8 @@ type fakeAuth struct {
 	loginErr error
 }
 
-func (f *fakeAuth) CheckPlayerPassword(ctx context.Context, username, password string) (database.Player, error) {
-	return database.Player{}, nil
+func (f *fakeAuth) CheckPlayerPassword(ctx context.Context, username, password string) (model.Player, error) {
+	return model.Player{}, nil
 }
 
 func (f *fakeAuth) LoginPlayer(ctx context.Context, username, password string) (model.AuthResult, error) {
@@ -65,14 +64,14 @@ func (f *fakeAuth) LoginPlayer(ctx context.Context, username, password string) (
 }
 
 type fakeFetch struct {
-	games        []database.Game
+	games        []model.Game
 	shared       *model.SharedData
-	interactions []database.Interaction
-	interaction  *database.Interaction
+	interactions []model.Interaction
+	interaction  *model.Interaction
 	err          error
 }
 
-func (f *fakeFetch) ListPlayerGames(ctx context.Context, playerId int64) ([]database.Game, error) {
+func (f *fakeFetch) ListPlayerGames(ctx context.Context, playerId int64) ([]model.Game, error) {
 	return f.games, f.err
 }
 
@@ -80,19 +79,19 @@ func (f *fakeFetch) GetSharedData(ctx context.Context, gameId int64) (*model.Sha
 	return f.shared, f.err
 }
 
-func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit, offset int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListInteractions(ctx context.Context, gameId, limit, offset int64) ([]model.Interaction, error) {
 	return f.interactions, f.err
 }
 
-func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, gameId, playerId, limit, offset int64) ([]database.Interaction, error) {
+func (f *fakeFetch) ListPlayerInteractions(ctx context.Context, gameId, playerId, limit, offset int64) ([]model.Interaction, error) {
 	return f.interactions, f.err
 }
 
-func (f *fakeFetch) FirstInteraction(ctx context.Context, gameId int64) (*database.Interaction, error) {
+func (f *fakeFetch) FirstInteraction(ctx context.Context, gameId int64) (*model.Interaction, error) {
 	return f.interaction, f.err
 }
 
-func (f *fakeFetch) LastInteraction(ctx context.Context, gameId int64) (*database.Interaction, error) {
+func (f *fakeFetch) LastInteraction(ctx context.Context, gameId int64) (*model.Interaction, error) {
 	return f.interaction, f.err
 }
 
@@ -138,7 +137,7 @@ const testJWTSecret = "test-secret-for-unit-tests"
 func newTestRouter(t *testing.T, d Deps) *echo.Echo {
 	t.Helper()
 	e := echo.New()
-	New(":0", testJWTSecret, newFakeTime(), d).routes(e)
+	New(":0", testJWTSecret, newFakeTime(), d, 72*time.Hour, 20).routes(e)
 	return e
 }
 
@@ -147,8 +146,8 @@ func newTestRouter(t *testing.T, d Deps) *echo.Echo {
 // the middleware's parsing path (and NewClaimsFunc) is exercised genuinely.
 func authRequest(t *testing.T, method, target string, playerID int64, body []byte) *http.Request {
 	t.Helper()
-	gen := &driven.JwtTokenGenerator{JwtSecret: testJWTSecret, TimeProvider: newFakeTime()}
-	token, err := gen.GenerateToken(database.Player{ID: playerID, Username: "neo"})
+	gen := &driven.JwtTokenGenerator{JwtSecret: testJWTSecret, TimeProvider: newFakeTime(), SessionLifetime: 72 * time.Hour}
+	token, err := gen.GenerateToken(model.Player{ID: playerID, Username: "neo"})
 	if err != nil {
 		t.Fatalf("generate token: %v", err)
 	}
@@ -262,7 +261,7 @@ func TestProtectedEndpoints_RequireAuth(t *testing.T) {
 
 func TestGetGames(t *testing.T) {
 	e := newTestRouter(t, Deps{
-		Fetch: &fakeFetch{games: []database.Game{{ID: 1, Name: "Alpha"}, {ID: 2, Name: "Beta"}}},
+		Fetch: &fakeFetch{games: []model.Game{{ID: 1, Name: "Alpha"}, {ID: 2, Name: "Beta"}}},
 	})
 
 	rec := do(t, e, authRequest(t, http.MethodGet, "/api/games", 7, nil))
@@ -320,10 +319,10 @@ func TestGetShared(t *testing.T) {
 }
 
 func TestGetInteractions(t *testing.T) {
-	interactions := []database.Interaction{
-		{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"},
+	interactions := []model.Interaction{
+		{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)},
 	}
-	single := &database.Interaction{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"}
+	single := &model.Interaction{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)}
 
 	t.Run("with access returns interactions (default limit)", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
@@ -453,8 +452,8 @@ func TestGetInteractions(t *testing.T) {
 // TestGetInteractions_Regression ensures the legacy no-query-param behavior is
 // identical to an explicit query=all.
 func TestGetInteractions_Regression(t *testing.T) {
-	interactions := []database.Interaction{
-		{ID: 1, GameID: 3, Action: "saved", OccurredAt: "2026-08-22T12:00:00Z"},
+	interactions := []model.Interaction{
+		{ID: 1, GameID: 3, Action: "saved", OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)},
 	}
 
 	getBody := func(target string) (string, int) {
@@ -510,7 +509,7 @@ func TestSaveGame(t *testing.T) {
 	t.Run("state machine conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{saveErr: errors.New("cannot save while paused")},
+			Commands: &fakeCommands{saveErr: usecase.ErrCannotSaveWhilePaused},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/save?gameId=3", 7, []byte(`{"duration":60}`)))
 		if rec.Code != http.StatusConflict {
@@ -551,17 +550,17 @@ func newIntegrationRouter(t *testing.T) *integrationDeps {
 	}
 
 	q := database.New(db)
-	fetch := usecase.NewDataFetching(q, newFakeTime())
+	fetch, _ := usecase.NewDataFetching(q, newFakeTime())
 	// Use an advancing clock so consecutive commands persist distinct,
 	// monotonically increasing timestamps (required by the state-machine trigger).
-	commands := usecase.NewGameCommands(q, newAdvancingTime())
-	access := usecase.NewAccessManagement(q)
+	commands, _ := usecase.NewGameCommands(q, newAdvancingTime())
+	access, _ := usecase.NewAccessManagement(q)
 
 	e := echo.New()
 	New(":0", testJWTSecret, newFakeTime(), Deps{
 		Fetch:  fetch,
 		Access: access,
-	}).routes(e)
+}, 72*time.Hour, 20).routes(e)
 	return &integrationDeps{e: e, commands: commands, access: access}
 }
 
@@ -684,7 +683,7 @@ func TestPlayPause(t *testing.T) {
 	t.Run("play conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{resumeErr: errors.New("cannot resume")},
+			Commands: &fakeCommands{resumeErr: usecase.ErrCannotResume},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/play?gameId=3", 7, nil))
 		if rec.Code != http.StatusConflict {
@@ -703,7 +702,7 @@ func TestPlayPause(t *testing.T) {
 	t.Run("pause conflict returns 409", func(t *testing.T) {
 		e := newTestRouter(t, Deps{
 			Access:   &fakeAccess{granted: true},
-			Commands: &fakeCommands{pauseErr: errors.New("cannot pause")},
+			Commands: &fakeCommands{pauseErr: usecase.ErrCannotPause},
 		})
 		rec := do(t, e, authRequest(t, http.MethodPost, "/api/pause?gameId=3", 7, nil))
 		if rec.Code != http.StatusConflict {

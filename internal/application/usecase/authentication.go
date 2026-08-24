@@ -8,6 +8,7 @@ import (
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/infrastructure/database/mapping"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -23,56 +24,49 @@ type Authentication struct {
 	tg port.TokenGenerator
 }
 
-func NewAuthentication(q *database.Queries, tg port.TokenGenerator) *Authentication {
-	return &Authentication{
-		q: q, tg: tg,
+func NewAuthentication(q *database.Queries, tg port.TokenGenerator) (*Authentication, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
 	}
+	if tg == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+	return &Authentication{q: q, tg: tg}, nil
 }
 
 func (uc *Authentication) CheckPlayerPassword(
 	ctx context.Context, username string, password string,
-) (database.Player, error) {
-	if uc.q == nil {
-		return database.Player{}, fmt.Errorf("database queries are not initialized")
-	}
-
+) (model.Player, error) {
 	if len(username) < 3 {
-		return database.Player{}, fmt.Errorf(
+		return model.Player{}, fmt.Errorf(
 			"username cannot have less than 3 characters: '%s'", username,
 		)
 	}
 
 	if err := service.IsPasswordValid(password); err != nil {
-		return database.Player{}, err
+		return model.Player{}, err
 	}
 
 	player, err := uc.q.GetPlayerByUsername(ctx, username)
 	if err != nil {
-		return database.Player{}, fmt.Errorf("failed to get player by username %q: %w", username, err)
+		return model.Player{}, fmt.Errorf("failed to get player by username %q: %w", username, err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(player.HashedPassword), []byte(password),
 	); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return database.Player{}, nil
+			return model.Player{}, nil
 		}
-		return database.Player{}, fmt.Errorf("failed to compare password hash: %w", err)
+		return model.Player{}, fmt.Errorf("failed to compare password hash: %w", err)
 	}
 
-	return player, nil
+	return mapping.ToDomainPlayer(player), nil
 }
 
 func (uc *Authentication) LoginPlayer(
 	ctx context.Context, username string, password string,
 ) (model.AuthResult, error) {
-	if uc.q == nil {
-		return model.AuthResult{}, fmt.Errorf("database queries are not initialized")
-	}
-
-	if uc.tg == nil {
-		return model.AuthResult{}, fmt.Errorf("token generator is not initialized")
-	}
 
 	if strings.TrimSpace(username) == "" || strings.TrimSpace(password) == "" {
 		return model.AuthResult{}, ErrBadRequest

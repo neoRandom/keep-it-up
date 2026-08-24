@@ -1,103 +1,71 @@
 package usecase
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
+	coremodel "keep-it-up/internal/core/model"
+	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/infrastructure/database"
-
-	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite"
+	"keep-it-up/internal/testutil"
 )
 
-func findMigrationsDir(t *testing.T) string {
-	goose.SetLogger(goose.NopLogger())
-	t.Helper()
-
-	// Try multiple possible locations for migrations directory
-	possiblePaths := []string{
-		"database/migrations", // from project root
-		filepath.Join("..", "..", "..", "database", "migrations"), // from test file location
-	}
-
-	// Also try computing from current working directory
-	cwd, err := os.Getwd()
-	if err == nil {
-		possiblePaths = append(possiblePaths, filepath.Join(cwd, "database", "migrations"))
-	}
-
-	for _, path := range possiblePaths {
-		if info, err := os.Stat(path); err == nil && info.IsDir() {
-			return path
-		}
-	}
-
-	// If not found, fail with helpful message
-	t.Fatalf("could not find migrations directory. Tried: %v", possiblePaths)
-	return ""
-}
-
+// newTestDB is a thin wrapper over testutil.NewTestDB so existing call sites
+// stay concise; the shared schema/migration setup lives in internal/testutil.
 func newTestDB(t *testing.T) *database.Queries {
-	goose.SetLogger(goose.NopLogger())
-	t.Helper()
-
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-
-	// Ensure goose uses SQLite dialect
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		t.Fatalf("set goose dialect: %v", err)
-	}
-
-	// Find and run Goose migrations to set up schema
-	// This makes Goose migrations the single source of truth for schema
-	migrationsDir := findMigrationsDir(t)
-
-	// Run all migrations
-	if err := goose.Up(db, migrationsDir); err != nil {
-		t.Fatalf("run goose migrations: %v", err)
-	}
-
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-
-	return database.New(db)
+	return testutil.NewTestDB(t)
 }
 
-// readGameNameByAccess reads a game's name through the production fetching
-// path (GrantPlayerAccess + ListPlayerGames), reporting whether the game is
-// visible to an authorized player. Using the access-scoped readback keeps the
-// test suite exercising real production queries rather than a now-removed
-// GetGame helper.
-func readGameNameByAccess(t *testing.T, ctx context.Context, q *database.Queries, gameID int64) (string, bool) {
+func mustNewGameManagement(t *testing.T, q *database.Queries) *GameManagement {
 	t.Helper()
-	player, err := q.CreatePlayer(ctx, database.CreatePlayerParams{
-		Name:           fmt.Sprintf("reader_%d", time.Now().UnixNano()),
-		Username:       fmt.Sprintf("reader_%d", time.Now().UnixNano()),
-		HashedPassword: "hash",
-	})
+	uc, err := NewGameManagement(q)
 	if err != nil {
-		t.Fatalf("readGameNameByAccess: CreatePlayer: %v", err)
+		t.Fatalf("NewGameManagement: %v", err)
 	}
-	if _, err := q.GrantPlayerAccess(ctx, database.GrantPlayerAccessParams{GameID: gameID, PlayerID: player.ID}); err != nil {
-		t.Fatalf("readGameNameByAccess: GrantPlayerAccess: %v", err)
-	}
-	games, err := q.ListPlayerGames(ctx, player.ID)
-	if err != nil {
-		t.Fatalf("readGameNameByAccess: ListPlayerGames: %v", err)
-	}
-	for _, g := range games {
-		if g.ID == gameID {
-			return g.Name, true
-		}
-	}
-	return "", false
+	return uc
 }
+
+func mustNewAccessManagement(t *testing.T, q *database.Queries) *AccessManagement {
+	t.Helper()
+	uc, err := NewAccessManagement(q)
+	if err != nil {
+		t.Fatalf("NewAccessManagement: %v", err)
+	}
+	return uc
+}
+
+func mustNewDataFetching(t *testing.T, q *database.Queries, tp port.TimeProvider) *DataFetching {
+	t.Helper()
+	uc, err := NewDataFetching(q, tp)
+	if err != nil {
+		t.Fatalf("NewDataFetching: %v", err)
+	}
+	return uc
+}
+
+func mustNewGameCommands(t *testing.T, q *database.Queries, tp port.TimeProvider) *GameCommands {
+	t.Helper()
+	uc, err := NewGameCommands(q, tp)
+	if err != nil {
+		t.Fatalf("NewGameCommands: %v", err)
+	}
+	return uc
+}
+
+func mustNewAuthentication(t *testing.T, q *database.Queries, tg port.TokenGenerator) *Authentication {
+	t.Helper()
+	uc, err := NewAuthentication(q, tg)
+	if err != nil {
+		t.Fatalf("NewAuthentication: %v", err)
+	}
+	return uc
+}
+
+// stubTokenGenerator satisfies port.TokenGenerator so tests can construct
+// Authentication with a non-nil tg (the constructor now requires one).
+type stubTokenGenerator struct{}
+
+func (stubTokenGenerator) GenerateToken(coremodel.Player) (string, error) {
+	return "stub-token", nil
+}
+
+var stubTG port.TokenGenerator = stubTokenGenerator{}

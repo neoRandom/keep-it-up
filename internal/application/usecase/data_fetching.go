@@ -9,6 +9,7 @@ import (
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/core/service"
 	"keep-it-up/internal/infrastructure/database"
+	"keep-it-up/internal/infrastructure/database/mapping"
 )
 
 type DataFetching struct {
@@ -16,17 +17,19 @@ type DataFetching struct {
 	tp port.TimeProvider
 }
 
-func NewDataFetching(q *database.Queries, tp port.TimeProvider) *DataFetching {
-	return &DataFetching{q: q, tp: tp}
+func NewDataFetching(q *database.Queries, tp port.TimeProvider) (*DataFetching, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+	if tp == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+	return &DataFetching{q: q, tp: tp}, nil
 }
 
 func (uc *DataFetching) ListPlayerGames(
 	ctx context.Context, playerId int64,
-) ([]database.Game, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
+) ([]model.Game, error) {
 	if playerId < 1 {
 		return nil, fmt.Errorf("invalid player ID: %d", playerId)
 	}
@@ -35,20 +38,12 @@ func (uc *DataFetching) ListPlayerGames(
 	if err != nil {
 		return nil, fmt.Errorf("failed to list games for player %d: %w", playerId, err)
 	}
-	return games, nil
+	return mapping.ToDomainGames(games), nil
 }
 
 func (uc *DataFetching) GetSharedData(
 	ctx context.Context, gameId int64,
 ) (*model.SharedData, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
-	if uc.tp == nil {
-		return nil, errors.New("time provider is not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -65,16 +60,17 @@ func (uc *DataFetching) GetSharedData(
 		return nil, fmt.Errorf("failed to get current time: %w", err)
 	}
 
-	return service.BuildSharedData(gameId, interactions, now)
+	domainInteractions, err := mapping.ToDomainInteractions(interactions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map interactions for game %d: %w", gameId, err)
+	}
+
+	return service.BuildSharedData(gameId, domainInteractions, now)
 }
 
 func (uc *DataFetching) ListInteractions(
 	ctx context.Context, gameId, limit, offset int64,
-) ([]database.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
+) ([]model.Interaction, error) {
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -98,18 +94,18 @@ func (uc *DataFetching) ListInteractions(
 	if err != nil {
 		return nil, fmt.Errorf("failed to list interactions for game %d: %w", gameId, err)
 	}
-	return interactions, nil
+	domainInteractions, err := mapping.ToDomainInteractions(interactions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map interactions for game %d: %w", gameId, err)
+	}
+	return domainInteractions, nil
 }
 
 // ListPlayerInteractions returns the interactions a player made in a specific
 // game, newest first, limited and paginated by offset.
 func (uc *DataFetching) ListPlayerInteractions(
 	ctx context.Context, gameId, playerId, limit, offset int64,
-) ([]database.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
+) ([]model.Interaction, error) {
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -138,18 +134,18 @@ func (uc *DataFetching) ListPlayerInteractions(
 	if err != nil {
 		return nil, fmt.Errorf("failed to list interactions for player %d in game %d: %w", playerId, gameId, err)
 	}
-	return interactions, nil
+	domainInteractions, err := mapping.ToDomainInteractions(interactions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map interactions for player %d in game %d: %w", playerId, gameId, err)
+	}
+	return domainInteractions, nil
 }
 
 // FirstInteraction returns the earliest interaction of a game, or nil if the
 // game has no interactions yet (i.e. it has never been started).
 func (uc *DataFetching) FirstInteraction(
 	ctx context.Context, gameId int64,
-) (*database.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
+) (*model.Interaction, error) {
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -161,18 +157,18 @@ func (uc *DataFetching) FirstInteraction(
 		}
 		return nil, fmt.Errorf("failed to get first interaction for game %d: %w", gameId, err)
 	}
-	return &interaction, nil
+	domainInteraction, err := mapping.ToDomainInteraction(interaction)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map interaction for game %d: %w", gameId, err)
+	}
+	return &domainInteraction, nil
 }
 
 // LastInteraction returns the latest interaction of a game, or nil if the game
 // has no interactions yet (i.e. it has never been started).
 func (uc *DataFetching) LastInteraction(
 	ctx context.Context, gameId int64,
-) (*database.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
+) (*model.Interaction, error) {
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -184,5 +180,9 @@ func (uc *DataFetching) LastInteraction(
 		}
 		return nil, fmt.Errorf("failed to get last interaction for game %d: %w", gameId, err)
 	}
-	return &interaction, nil
+	domainInteraction, err := mapping.ToDomainInteraction(interaction)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map interaction for game %d: %w", gameId, err)
+	}
+	return &domainInteraction, nil
 }

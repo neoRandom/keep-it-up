@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"keep-it-up/internal/core/model"
-	"keep-it-up/internal/infrastructure/constant"
-	"keep-it-up/internal/infrastructure/database"
 )
 
 func ComputeValid(s *model.SharedData, now time.Time) {
@@ -35,7 +33,7 @@ func ComputeValid(s *model.SharedData, now time.Time) {
 // `now` is used to compute the time-dependent "valid" flag, so the returned
 // value always carries a Valid consistent with its deadline.
 func BuildSharedData(
-	gameId int64, interactions []database.Interaction, now time.Time,
+	gameId int64, interactions []model.Interaction, now time.Time,
 ) (*model.SharedData, error) {
 	data := &model.SharedData{
 		GameID: gameId,
@@ -56,20 +54,13 @@ func BuildSharedData(
 			)
 		}
 
-		occurredAt, err := time.Parse(constant.DBDatetimeFormat, ia.OccurredAt)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"build shared data: interaction %d: parse occurred_at: %w",
-				ia.ID, err,
-			)
-		}
-		if !prevOccurredAt.IsZero() && occurredAt.Before(prevOccurredAt) {
+		if !prevOccurredAt.IsZero() && ia.OccurredAt.Before(prevOccurredAt) {
 			return nil, fmt.Errorf(
 				"build shared data: interaction %d: occurred_at out of order",
 				ia.ID,
 			)
 		}
-		prevOccurredAt = occurredAt
+		prevOccurredAt = ia.OccurredAt
 
 		switch ia.Action {
 		case "saved":
@@ -79,23 +70,23 @@ func BuildSharedData(
 					ia.ID,
 				)
 			}
-			if !ia.SavedBy.Valid || ia.SavedBy.Int64 <= 0 {
+			if ia.SavedBy == nil || *ia.SavedBy <= 0 {
 				return nil, fmt.Errorf(
 					"build shared data: interaction %d: invalid saved_by",
 					ia.ID,
 				)
 			}
-			extension := time.Duration(ia.SavedBy.Int64) * time.Second
+			extension := time.Duration(*ia.SavedBy) * time.Second
 
 			if data.Status == model.NotStarted {
-				deadline := occurredAt.Add(extension)
+				deadline := ia.OccurredAt.Add(extension)
 				data.DeadlineAt = &deadline
 				data.Status = model.Playing
 			} else {
 				deadline := data.DeadlineAt.Add(extension)
 				data.DeadlineAt = &deadline
 			}
-			data.LastSavedAt = &occurredAt
+			data.LastSavedAt = &ia.OccurredAt
 
 		case "paused":
 			if data.Status != model.Playing {
@@ -105,7 +96,7 @@ func BuildSharedData(
 				)
 			}
 			data.Status = model.Paused
-			data.LastPausedAt = &occurredAt
+			data.LastPausedAt = &ia.OccurredAt
 
 		case "resumed":
 			if data.Status != model.Paused {
@@ -114,7 +105,7 @@ func BuildSharedData(
 					ia.ID, data.Status,
 				)
 			}
-			deadline := data.DeadlineAt.Add(occurredAt.Sub(*data.LastPausedAt))
+			deadline := data.DeadlineAt.Add(ia.OccurredAt.Sub(*data.LastPausedAt))
 			data.DeadlineAt = &deadline
 			data.Status = model.Playing
 			data.LastPausedAt = nil

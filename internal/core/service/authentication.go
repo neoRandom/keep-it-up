@@ -2,14 +2,15 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 func IsPasswordValid(password string) error {
-	if strings.ContainsRune(password, ' ') {
-		return fmt.Errorf("password cannot have whitespaces")
+	for _, r := range password {
+		if !((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+			return fmt.Errorf("password may only contain letters and digits")
+		}
 	}
 
 	if len(password) < 6 {
