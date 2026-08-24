@@ -47,15 +47,8 @@ Nouns:
            pause  <game id> <player id>
 `
 
-// Deps groups the driver ports and I/O streams the CLI needs. It is a
-// struct rather than positional constructor params so call sites stay
-// self-documenting as the dependency count grows.
-//
-// The six fields mirror driver.go's interface segregation exactly (one
-// field per port) rather than collapsing them into a single composed
-// interface. See the design-notes reply for the trade-off against
-// composition — this file makes the conservative choice since it assumes
-// nothing about how internal/application/usecase structures its types.
+// Deps groups the driver ports and I/O streams the CLI needs.
+
 type Deps struct {
 	Games    port.GameManagement
 	Access   port.AccessManagement
