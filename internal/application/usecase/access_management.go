@@ -11,17 +11,16 @@ type AccessManagement struct {
 	q *database.Queries
 }
 
-func NewAccessManagement(q *database.Queries) *AccessManagement {
-	return &AccessManagement{q: q}
+func NewAccessManagement(q *database.Queries) (*AccessManagement, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+	return &AccessManagement{q: q}, nil
 }
 
 func (uc *AccessManagement) GrantPlayerAccess(
 	ctx context.Context, gameId int64, playerId int64,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -47,10 +46,6 @@ func (uc *AccessManagement) GrantPlayerAccess(
 func (uc *AccessManagement) RevokePlayerAccess(
 	ctx context.Context, gameId int64, playerId int64,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -74,10 +69,6 @@ func (uc *AccessManagement) RevokePlayerAccess(
 func (uc *AccessManagement) CheckPlayerAccess(
 	ctx context.Context, gameId, playerId int64,
 ) (bool, error) {
-	if uc.q == nil {
-		return false, errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return false, fmt.Errorf("invalid game ID: %d", gameId)
 	}

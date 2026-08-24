@@ -20,9 +20,9 @@ func TestAccessManagement_GrantPlayerAccess(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewAccessManagement(nil)
-		err := uc.GrantPlayerAccess(ctx, 1, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewAccessManagement(nil); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -37,7 +37,7 @@ func TestAccessManagement_GrantPlayerAccess(t *testing.T) {
 		{"invalid player id: negative", 1, -1, "invalid player ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewAccessManagement(newTestDB(t))
+			uc := mustNewAccessManagement(t, newTestDB(t))
 			err := uc.GrantPlayerAccess(ctx, tt.gameID, tt.playerID)
 			requireErrContains(t, err, tt.wantErr)
 		})
@@ -50,14 +50,14 @@ func TestAccessManagement_GrantPlayerAccess(t *testing.T) {
 		// game/player rows. If this fails against the real DB, FK
 		// enforcement is on somewhere in the connection setup and
 		// games/players need seeding first.
-		uc := NewAccessManagement(newTestDB(t))
+		uc := mustNewAccessManagement(t, newTestDB(t))
 		if err := uc.GrantPlayerAccess(ctx, 1, 1); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 	})
 
 	t.Run("duplicate grant fails on the composite primary key", func(t *testing.T) {
-		uc := NewAccessManagement(newTestDB(t))
+		uc := mustNewAccessManagement(t, newTestDB(t))
 		if err := uc.GrantPlayerAccess(ctx, 1, 1); err != nil {
 			t.Fatalf("first grant: expected no error, got %v", err)
 		}
@@ -71,9 +71,9 @@ func TestAccessManagement_RevokePlayerAccess(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewAccessManagement(nil)
-		err := uc.RevokePlayerAccess(ctx, 1, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewAccessManagement(nil); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -88,14 +88,14 @@ func TestAccessManagement_RevokePlayerAccess(t *testing.T) {
 		{"invalid player id: negative", 1, -1, "invalid player ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewAccessManagement(newTestDB(t))
+			uc := mustNewAccessManagement(t, newTestDB(t))
 			err := uc.RevokePlayerAccess(ctx, tt.gameID, tt.playerID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("revoke after grant succeeds", func(t *testing.T) {
-		uc := NewAccessManagement(newTestDB(t))
+		uc := mustNewAccessManagement(t, newTestDB(t))
 		if err := uc.GrantPlayerAccess(ctx, 1, 1); err != nil {
 			t.Fatalf("setup grant: expected no error, got %v", err)
 		}

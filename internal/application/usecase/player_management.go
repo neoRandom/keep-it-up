@@ -19,6 +19,9 @@ type PlayerManagement struct {
 }
 
 func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*PlayerManagement, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
 	if auth == nil {
 		return nil, errors.New("authentication is not initialized")
 	}
@@ -26,13 +29,6 @@ func NewPlayerManagement(q *database.Queries, auth port.Authentication) (*Player
 }
 
 func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username string, password string) (model.Player, error) {
-	if uc.q == nil {
-		return model.Player{}, fmt.Errorf("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return model.Player{}, fmt.Errorf("authentication is not initialized")
-	}
-
 	name = strings.TrimSpace(name)
 
 	if len(name) < 2 {
@@ -85,10 +81,6 @@ func (uc *PlayerManagement) AddPlayer(ctx context.Context, name string, username
 }
 
 func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64, name string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}
@@ -109,13 +101,6 @@ func (uc *PlayerManagement) UpdatePlayerName(ctx context.Context, playerId int64
 }
 
 func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int64, password string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return fmt.Errorf("authentication is not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid player ID: %d", id)
 	}
@@ -143,13 +128,6 @@ func (uc *PlayerManagement) BaseUpdatePlayerPassword(ctx context.Context, id int
 func (uc *PlayerManagement) UpdatePlayerPassword(
 	ctx context.Context, username, currentPassword, newPassword string,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return errors.New("authentication is not initialized")
-	}
-
 	if strings.TrimSpace(username) == "" {
 		return errors.New("username cannot be empty string")
 	}
@@ -182,13 +160,6 @@ func (uc *PlayerManagement) UpdatePlayerPassword(
 func (uc *PlayerManagement) UpdatePlayerPasswordForce(
 	ctx context.Context, username, password string,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-	if uc.auth == nil {
-		return errors.New("authentication is not initialized")
-	}
-
 	if strings.TrimSpace(username) == "" {
 		return errors.New("username cannot be empty string")
 	}
@@ -209,10 +180,6 @@ func (uc *PlayerManagement) UpdatePlayerPasswordForce(
 }
 
 func (uc *PlayerManagement) DeletePlayer(ctx context.Context, playerId int64) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if playerId < 1 {
 		return fmt.Errorf("invalid player ID: %d", playerId)
 	}

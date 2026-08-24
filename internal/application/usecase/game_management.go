@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"keep-it-up/internal/core/model"
 	"keep-it-up/internal/infrastructure/database"
@@ -13,15 +14,14 @@ type GameManagement struct {
 	q *database.Queries
 }
 
-func NewGameManagement(q *database.Queries) *GameManagement {
-	return &GameManagement{q: q}
+func NewGameManagement(q *database.Queries) (*GameManagement, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+	return &GameManagement{q: q}, nil
 }
 
 func (uc *GameManagement) AddGame(ctx context.Context, name string) (model.Game, error) {
-	if uc.q == nil {
-		return model.Game{}, fmt.Errorf("database queries are not initialized")
-	}
-
 	name = strings.TrimSpace(name)
 
 	if len(name) < 3 {
@@ -39,10 +39,6 @@ func (uc *GameManagement) AddGame(ctx context.Context, name string) (model.Game,
 }
 
 func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid game ID: %d", id)
 	}
@@ -66,10 +62,6 @@ func (uc *GameManagement) UpdateGame(ctx context.Context, id int64, name string)
 }
 
 func (uc *GameManagement) DeleteGame(ctx context.Context, id int64) error {
-	if uc.q == nil {
-		return fmt.Errorf("database queries are not initialized")
-	}
-
 	if id < 1 {
 		return fmt.Errorf("invalid game ID: %d", id)
 	}

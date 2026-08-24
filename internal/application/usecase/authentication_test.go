@@ -12,7 +12,7 @@ import (
 func TestAuthentication_CheckPlayerPasswordUsesPasswordRuleValidation(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestAuthentication_CheckPlayerPasswordUsesPasswordRuleValidation(t *testing
 func TestAuthentication_CheckPlayerPassword(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
 	if err != nil {
@@ -64,7 +64,7 @@ func TestAuthentication_CheckPlayerPassword(t *testing.T) {
 func TestAuthentication_CheckPlayerPasswordRejectsWrongPassword(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
 	if err != nil {
@@ -91,7 +91,7 @@ func TestAuthentication_CheckPlayerPasswordRejectsWrongPassword(t *testing.T) {
 
 func TestAuthentication_CheckPlayerPasswordRejectsUnknownUser(t *testing.T) {
 	ctx := context.Background()
-	auth := NewAuthentication(newTestDB(t), nil)
+	auth := mustNewAuthentication(t, newTestDB(t), stubTG)
 
 	player, err := auth.CheckPlayerPassword(ctx, "ghost", "secret123")
 	if err == nil {
@@ -105,7 +105,7 @@ func TestAuthentication_CheckPlayerPasswordRejectsUnknownUser(t *testing.T) {
 func TestAuthentication_CheckPlayerPasswordRejectsInvalidInput(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	if _, err := auth.CheckPlayerPassword(ctx, "a", "secret123"); err == nil {
 		t.Fatal("CheckPlayerPassword() accepted a short username")
@@ -115,17 +115,15 @@ func TestAuthentication_CheckPlayerPasswordRejectsInvalidInput(t *testing.T) {
 		t.Fatal("CheckPlayerPassword() accepted a short password")
 	}
 
-
-	authNil := NewAuthentication(nil, nil)
-	if _, err := authNil.CheckPlayerPassword(ctx, "alice", "secret123"); err == nil {
-		t.Fatal("CheckPlayerPassword() accepted nil database queries")
+	if _, err := NewAuthentication(nil, nil); err == nil {
+		t.Fatal("NewAuthentication() should return an error for nil queries")
 	}
 }
 
 func TestAuthentication_CheckPlayerPasswordRejectsMalformedHash(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	_, err := queries.CreatePlayer(ctx, database.CreatePlayerParams{
 		Name:           "Alice",
@@ -147,7 +145,7 @@ func TestAuthentication_CheckPlayerPasswordRejectsMalformedHash(t *testing.T) {
 
 func TestAuthentication_CheckPlayerPasswordWithCancelledContext(t *testing.T) {
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	// Create a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -158,4 +156,3 @@ func TestAuthentication_CheckPlayerPasswordWithCancelledContext(t *testing.T) {
 		t.Fatal("CheckPlayerPassword() should return error for cancelled context")
 	}
 }
-

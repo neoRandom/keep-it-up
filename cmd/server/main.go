@@ -57,9 +57,21 @@ func run() int {
 
 	timeProvider := &driven.DefaultTimeProvider{}
 
-	fetching := usecase.NewDataFetching(q, timeProvider)
-	commands := usecase.NewGameCommands(q, timeProvider)
-	access := usecase.NewAccessManagement(q)
+	fetching, err := usecase.NewDataFetching(q, timeProvider)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create data fetching:", err)
+		return 1
+	}
+	commands, err := usecase.NewGameCommands(q, timeProvider)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create game commands:", err)
+		return 1
+	}
+	access, err := usecase.NewAccessManagement(q)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create access management:", err)
+		return 1
+	}
 
 	valkeyClient, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{cfg.ValkeyAddress}})
 	if err != nil {
@@ -72,15 +84,21 @@ func run() int {
 		return 1
 	}
 
+	auth, err := usecase.NewAuthentication(
+		q,
+		&driven.JwtTokenGenerator{
+			JwtSecret:       cfg.JWTSecret,
+			TimeProvider:    timeProvider,
+			SessionLifetime: cfg.SessionLifetime,
+		},
+	)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create authentication:", err)
+		return 1
+	}
+
 	deps := httpadapter.Deps{
-		Auth: usecase.NewAuthentication(
-			q,
-			&driven.JwtTokenGenerator{
-				JwtSecret:       cfg.JWTSecret,
-				TimeProvider:    timeProvider,
-				SessionLifetime: cfg.SessionLifetime,
-			},
-		),
+		Auth:     auth,
 		Fetch:    fetching,
 		Commands: commands,
 		Access:   access,

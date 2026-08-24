@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/core/port"
+	"keep-it-up/internal/infrastructure/driven"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v5"
@@ -34,7 +34,7 @@ type HTTPAdapter struct {
 	idemTTL    time.Duration
 	idemHeader string
 
-	sessionLifetime   time.Duration
+	sessionLifetime          time.Duration
 	defaultInteractionsLimit int64
 }
 

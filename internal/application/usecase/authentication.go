@@ -24,19 +24,19 @@ type Authentication struct {
 	tg port.TokenGenerator
 }
 
-func NewAuthentication(q *database.Queries, tg port.TokenGenerator) *Authentication {
-	return &Authentication{
-		q: q, tg: tg,
+func NewAuthentication(q *database.Queries, tg port.TokenGenerator) (*Authentication, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
 	}
+	if tg == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+	return &Authentication{q: q, tg: tg}, nil
 }
 
 func (uc *Authentication) CheckPlayerPassword(
 	ctx context.Context, username string, password string,
 ) (model.Player, error) {
-	if uc.q == nil {
-		return model.Player{}, fmt.Errorf("database queries are not initialized")
-	}
-
 	if len(username) < 3 {
 		return model.Player{}, fmt.Errorf(
 			"username cannot have less than 3 characters: '%s'", username,
@@ -67,13 +67,6 @@ func (uc *Authentication) CheckPlayerPassword(
 func (uc *Authentication) LoginPlayer(
 	ctx context.Context, username string, password string,
 ) (model.AuthResult, error) {
-	if uc.q == nil {
-		return model.AuthResult{}, fmt.Errorf("database queries are not initialized")
-	}
-
-	if uc.tg == nil {
-		return model.AuthResult{}, fmt.Errorf("token generator is not initialized")
-	}
 
 	if strings.TrimSpace(username) == "" || strings.TrimSpace(password) == "" {
 		return model.AuthResult{}, ErrBadRequest

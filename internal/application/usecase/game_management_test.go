@@ -9,7 +9,7 @@ import (
 
 func TestGameManagement_CRUDSequence(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameManagement(newTestDB(t))
+	uc := mustNewGameManagement(t, newTestDB(t))
 
 	// Create
 	created, err := uc.AddGame(ctx, "TestGame")
@@ -52,23 +52,14 @@ func TestGameManagement_CRUDSequence(t *testing.T) {
 }
 
 func TestGameManagement_RejectsNilQueries(t *testing.T) {
-	ctx := context.Background()
-	uc := NewGameManagement(nil)
-
-	if _, err := uc.AddGame(ctx, "Alpha"); err == nil {
-		t.Fatal("AddGame() accepted nil queries")
-	}
-	if err := uc.UpdateGame(ctx, 1, "Beta"); err == nil {
-		t.Fatal("UpdateGame() accepted nil queries")
-	}
-	if err := uc.DeleteGame(ctx, 1); err == nil {
-		t.Fatal("DeleteGame() accepted nil queries")
+	if _, err := NewGameManagement(nil); err == nil {
+		t.Fatal("NewGameManagement() should return an error for nil queries")
 	}
 }
 
 func TestGameManagement_RejectsInvalidIDs(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameManagement(newTestDB(t))
+	uc := mustNewGameManagement(t, newTestDB(t))
 
 	for _, id := range []int64{-1, -100, 0} {
 		if err := uc.UpdateGame(ctx, id, "Name"); err == nil {
@@ -82,7 +73,7 @@ func TestGameManagement_RejectsInvalidIDs(t *testing.T) {
 
 func TestGameManagement_RejectsInvalidNames(t *testing.T) {
 	ctx := context.Background()
-	uc := NewGameManagement(newTestDB(t))
+	uc := mustNewGameManagement(t, newTestDB(t))
 
 	// AddGame name rule: minimum 3 characters; non-alphanumeric is allowed.
 	for _, tc := range []struct {
@@ -144,7 +135,7 @@ func TestGameManagement_CancelledContext(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			uc := NewGameManagement(newTestDB(t))
+			uc := mustNewGameManagement(t, newTestDB(t))
 			created, err := uc.AddGame(context.Background(), "Seed")
 			if err != nil {
 				t.Fatalf("setup AddGame: %v", err)

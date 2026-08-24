@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"keep-it-up/internal/core/port"
 	"keep-it-up/internal/infrastructure/constant"
 	"keep-it-up/internal/infrastructure/database"
+	"strings"
 )
 
 var (
@@ -22,23 +22,19 @@ type GameCommands struct {
 	tp port.TimeProvider
 }
 
-func NewGameCommands(q *database.Queries, tp port.TimeProvider) *GameCommands {
-	return &GameCommands{
-		q: q, tp: tp,
+func NewGameCommands(q *database.Queries, tp port.TimeProvider) (*GameCommands, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
 	}
+	if tp == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+	return &GameCommands{q: q, tp: tp}, nil
 }
 
 func (uc *GameCommands) SaveGame(
 	ctx context.Context, gameId int64, playerId int64, duration int64,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-
-	if uc.tp == nil {
-		return errors.New("time provider is not initialized")
-	}
-
 	if gameId < 1 {
 		return fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -75,14 +71,6 @@ func (uc *GameCommands) SaveGame(
 func (uc *GameCommands) ResumeGame(
 	ctx context.Context, gameId int64, playerId int64,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-
-	if uc.tp == nil {
-		return errors.New("time provider is not initialized")
-	}
-
 	if gameId < 1 {
 		return fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -114,14 +102,6 @@ func (uc *GameCommands) ResumeGame(
 func (uc *GameCommands) PauseGame(
 	ctx context.Context, gameId int64, playerId int64,
 ) error {
-	if uc.q == nil {
-		return errors.New("database queries are not initialized")
-	}
-
-	if uc.tp == nil {
-		return errors.New("time provider is not initialized")
-	}
-
 	if gameId < 1 {
 		return fmt.Errorf("invalid game ID: %d", gameId)
 	}

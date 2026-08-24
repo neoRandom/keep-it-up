@@ -11,7 +11,7 @@ import (
 
 func newTestPlayerManagement(t *testing.T, q *database.Queries) *PlayerManagement {
 	t.Helper()
-	uc, err := NewPlayerManagement(q, NewAuthentication(q, nil))
+	uc, err := NewPlayerManagement(q, mustNewAuthentication(t, q, stubTG))
 	if err != nil {
 		t.Fatalf("NewPlayerManagement() returned error: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestPlayerManagement_TrimPasswordWhitespaceBeforeStorage(t *testing.T) {
 			t.Fatalf("AddPlayer() stored the raw password with whitespace for %q", tc.password)
 		}
 
-		if player, err := NewAuthentication(queries, nil).CheckPlayerPassword(
+		if player, err := mustNewAuthentication(t, queries, stubTG).CheckPlayerPassword(
 			ctx, tc.username, strings.TrimSpace(tc.password),
 		); err != nil || player.ID == 0 {
 			t.Fatalf("CheckPlayerPassword() should accept username=%q with trimmed password=%q: ok=%v err=%v",
@@ -131,7 +131,7 @@ func TestPlayerManagement_DuplicateUsername(t *testing.T) {
 func TestPlayerManagement_RejectsInvalidIDs(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 	uc, err := NewPlayerManagement(queries, auth)
 	if err != nil {
 		t.Fatalf("NewPlayerManagement() returned error: %v", err)
@@ -263,7 +263,7 @@ func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 	ctx := context.Background()
 	queries := newTestDB(t)
 	uc := newTestPlayerManagement(t, queries)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
 	player, err := uc.AddPlayer(ctx, "TestUser", "testuser", "password123")
 	if err != nil {
@@ -309,44 +309,11 @@ func TestPlayerManagement_SuccessfulPlayerCRUDWithPasswordChange(t *testing.T) {
 }
 
 func TestPlayerManagement_RejectsNilDependencies(t *testing.T) {
-	ctx := context.Background()
 	queries := newTestDB(t)
-	auth := NewAuthentication(queries, nil)
+	auth := mustNewAuthentication(t, queries, stubTG)
 
-	// Missing auth dependency.
-	nilAuth := &PlayerManagement{q: queries, auth: nil}
-	if _, err := nilAuth.AddPlayer(ctx, "Alice", "alice", "secret123"); err == nil {
-		t.Fatal("AddPlayer() accepted nil auth")
-	}
-	if err := nilAuth.BaseUpdatePlayerPassword(ctx, 1, "newpass123"); err == nil {
-		t.Fatal("BaseUpdatePlayerPassword() accepted nil auth")
-	}
-	if err := nilAuth.UpdatePlayerPassword(ctx, "alice", "secret123", "newpass123"); err == nil {
-		t.Fatal("UpdatePlayerPassword() accepted nil auth")
-	}
-	if err := nilAuth.UpdatePlayerPasswordForce(ctx, "alice", "newpass123"); err == nil {
-		t.Fatal("UpdatePlayerPasswordForce() accepted nil auth")
-	}
-
-	// Missing query dependency.
-	nilQ := &PlayerManagement{q: nil, auth: auth}
-	if _, err := nilQ.AddPlayer(ctx, "Alice", "alice", "secret123"); err == nil {
-		t.Fatal("AddPlayer() accepted nil queries")
-	}
-	if err := nilQ.UpdatePlayerName(ctx, 1, "Alice"); err == nil {
-		t.Fatal("UpdatePlayerName() accepted nil queries")
-	}
-	if err := nilQ.BaseUpdatePlayerPassword(ctx, 1, "newpass123"); err == nil {
-		t.Fatal("BaseUpdatePlayerPassword() accepted nil queries")
-	}
-	if err := nilQ.UpdatePlayerPassword(ctx, "alice", "secret123", "newpass123"); err == nil {
-		t.Fatal("UpdatePlayerPassword() accepted nil queries")
-	}
-	if err := nilQ.UpdatePlayerPasswordForce(ctx, "alice", "newpass123"); err == nil {
-		t.Fatal("UpdatePlayerPasswordForce() accepted nil queries")
-	}
-	if err := nilQ.DeletePlayer(ctx, 1); err == nil {
-		t.Fatal("DeletePlayer() accepted nil queries")
+	if _, err := NewPlayerManagement(nil, auth); err == nil {
+		t.Fatal("NewPlayerManagement() should return an error for nil queries")
 	}
 }
 

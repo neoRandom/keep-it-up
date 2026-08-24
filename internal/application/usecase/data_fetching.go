@@ -17,17 +17,19 @@ type DataFetching struct {
 	tp port.TimeProvider
 }
 
-func NewDataFetching(q *database.Queries, tp port.TimeProvider) *DataFetching {
-	return &DataFetching{q: q, tp: tp}
+func NewDataFetching(q *database.Queries, tp port.TimeProvider) (*DataFetching, error) {
+	if q == nil {
+		return nil, errors.New("database queries are not initialized")
+	}
+	if tp == nil {
+		return nil, errors.New("time provider is not initialized")
+	}
+	return &DataFetching{q: q, tp: tp}, nil
 }
 
 func (uc *DataFetching) ListPlayerGames(
 	ctx context.Context, playerId int64,
 ) ([]model.Game, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
 	if playerId < 1 {
 		return nil, fmt.Errorf("invalid player ID: %d", playerId)
 	}
@@ -42,14 +44,6 @@ func (uc *DataFetching) ListPlayerGames(
 func (uc *DataFetching) GetSharedData(
 	ctx context.Context, gameId int64,
 ) (*model.SharedData, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
-	if uc.tp == nil {
-		return nil, errors.New("time provider is not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -77,10 +71,6 @@ func (uc *DataFetching) GetSharedData(
 func (uc *DataFetching) ListInteractions(
 	ctx context.Context, gameId, limit, offset int64,
 ) ([]model.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -116,10 +106,6 @@ func (uc *DataFetching) ListInteractions(
 func (uc *DataFetching) ListPlayerInteractions(
 	ctx context.Context, gameId, playerId, limit, offset int64,
 ) ([]model.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -160,10 +146,6 @@ func (uc *DataFetching) ListPlayerInteractions(
 func (uc *DataFetching) FirstInteraction(
 	ctx context.Context, gameId int64,
 ) (*model.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}
@@ -187,10 +169,6 @@ func (uc *DataFetching) FirstInteraction(
 func (uc *DataFetching) LastInteraction(
 	ctx context.Context, gameId int64,
 ) (*model.Interaction, error) {
-	if uc.q == nil {
-		return nil, errors.New("database queries are not initialized")
-	}
-
 	if gameId < 1 {
 		return nil, fmt.Errorf("invalid game ID: %d", gameId)
 	}

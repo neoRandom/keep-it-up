@@ -550,11 +550,11 @@ func newIntegrationRouter(t *testing.T) *integrationDeps {
 	}
 
 	q := database.New(db)
-	fetch := usecase.NewDataFetching(q, newFakeTime())
+	fetch, _ := usecase.NewDataFetching(q, newFakeTime())
 	// Use an advancing clock so consecutive commands persist distinct,
 	// monotonically increasing timestamps (required by the state-machine trigger).
-	commands := usecase.NewGameCommands(q, newAdvancingTime())
-	access := usecase.NewAccessManagement(q)
+	commands, _ := usecase.NewGameCommands(q, newAdvancingTime())
+	access, _ := usecase.NewAccessManagement(q)
 
 	e := echo.New()
 	New(":0", testJWTSecret, newFakeTime(), Deps{

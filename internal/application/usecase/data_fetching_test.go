@@ -11,9 +11,9 @@ func TestDataFetching_ListPlayerGames(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.ListPlayerGames(ctx, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -25,14 +25,14 @@ func TestDataFetching_ListPlayerGames(t *testing.T) {
 		{"invalid player id: negative", -1, "invalid player ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.ListPlayerGames(ctx, tt.playerID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("player with no games returns empty, no error", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		games, err := uc.ListPlayerGames(ctx, 1)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -47,15 +47,15 @@ func TestDataFetching_GetSharedData(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.GetSharedData(ctx, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	t.Run("nil time provider", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), nil)
-		_, err := uc.GetSharedData(ctx, 1)
-		requireErrContains(t, err, "time provider is not initialized")
+		if _, err := NewDataFetching(newTestDB(t), nil); err == nil {
+			t.Fatal("expected error for nil time provider")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -67,14 +67,14 @@ func TestDataFetching_GetSharedData(t *testing.T) {
 		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.GetSharedData(ctx, tt.gameID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("game with no interactions returns not-started shared data", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		shared, err := uc.GetSharedData(ctx, 1)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -89,12 +89,12 @@ func TestDataFetching_GetSharedData(t *testing.T) {
 
 	t.Run("valid flag is computed when a deadline is present", func(t *testing.T) {
 		q := newTestDB(t)
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 
 		// A save at fixed-clock time 12:00:00 with a 60s duration sets the
 		// deadline to 12:01:00, which is in the future relative to "now", so
 		// valid must be true — proving ComputeValid runs inside GetSharedData.
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 		if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
 			t.Fatalf("setup SaveGame: %v", err)
 		}
@@ -116,9 +116,9 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.FirstInteraction(ctx, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -130,14 +130,14 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.FirstInteraction(ctx, tt.gameID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("game with no interactions returns nil, no error", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		interaction, err := uc.FirstInteraction(ctx, 1)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -149,7 +149,7 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 
 	t.Run("returns the earliest interaction of the game", func(t *testing.T) {
 		q := newTestDB(t)
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 
 		// save (12:00:00), pause (12:00:01), resume (12:00:02), save (12:00:03).
 		if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
@@ -165,7 +165,7 @@ func TestDataFetching_FirstInteraction(t *testing.T) {
 			t.Fatalf("setup save 2: %v", err)
 		}
 
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 		interaction, err := uc.FirstInteraction(ctx, 5)
 		if err != nil {
 			t.Fatalf("FirstInteraction: %v", err)
@@ -183,9 +183,9 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.LastInteraction(ctx, 1)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -197,14 +197,14 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 		{"invalid game id: negative", -1, "invalid game ID"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.LastInteraction(ctx, tt.gameID)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("game with no interactions returns nil, no error", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		interaction, err := uc.LastInteraction(ctx, 1)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -216,7 +216,7 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 
 	t.Run("returns the latest interaction of the game", func(t *testing.T) {
 		q := newTestDB(t)
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 
 		// save (12:00:00), pause (12:00:01), resume (12:00:02), save (12:00:03).
 		if err := commands.SaveGame(ctx, 5, 1, 60); err != nil {
@@ -232,7 +232,7 @@ func TestDataFetching_LastInteraction(t *testing.T) {
 			t.Fatalf("setup save 2: %v", err)
 		}
 
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 		interaction, err := uc.LastInteraction(ctx, 5)
 		if err != nil {
 			t.Fatalf("LastInteraction: %v", err)
@@ -250,9 +250,9 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.ListPlayerInteractions(ctx, 1, 1, 10, 0)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -271,14 +271,14 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 		{"negative offset", 1, 1, 10, -1, "query offset cannot be less than 0"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.ListPlayerInteractions(ctx, tt.gameID, tt.playerID, tt.limit, tt.offset)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("player with no interactions in a game returns empty, no error", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		interactions, err := uc.ListPlayerInteractions(ctx, 5, 1, 10, 0)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -290,7 +290,7 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 
 	t.Run("returns only the given player's interactions for the given game, newest first", func(t *testing.T) {
 		q := newTestDB(t)
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 
 		// Player 1 saves in game 1, player 2 saves in game 1, player 1 saves
 		// again in game 1, player 1 saves in game 2. The fixed clock advances
@@ -308,7 +308,7 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 			t.Fatalf("setup save 4: %v", err)
 		}
 
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 		interactions, err := uc.ListPlayerInteractions(ctx, 1, 1, 10, 0)
 		if err != nil {
 			t.Fatalf("ListPlayerInteractions: %v", err)
@@ -327,7 +327,7 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 
 	t.Run("offset paginates past earlier interactions for the player and game", func(t *testing.T) {
 		q := newTestDB(t)
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 
 		// Player 1 saves in game 1 three times (12:00:00, 12:00:01, 12:00:02).
 		// The fixed clock advances one second per call.
@@ -337,7 +337,7 @@ func TestDataFetching_ListPlayerInteractions(t *testing.T) {
 			}
 		}
 
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 		interactions, err := uc.ListPlayerInteractions(ctx, 1, 1, 10, 1)
 		if err != nil {
 			t.Fatalf("ListPlayerInteractions: %v", err)
@@ -356,9 +356,9 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("nil queries", func(t *testing.T) {
-		uc := NewDataFetching(nil, newFixedClock())
-		_, err := uc.ListInteractions(ctx, 1, 10, 0)
-		requireErrContains(t, err, "not initialized")
+		if _, err := NewDataFetching(nil, newFixedClock()); err == nil {
+			t.Fatal("expected error for nil queries")
+		}
 	})
 
 	for _, tt := range []struct {
@@ -374,14 +374,14 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 		{"negative offset", 1, 10, -1, "query offset cannot be less than 0"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := NewDataFetching(newTestDB(t), newFixedClock())
+			uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 			_, err := uc.ListInteractions(ctx, tt.gameID, tt.limit, tt.offset)
 			requireErrContains(t, err, tt.wantErr)
 		})
 	}
 
 	t.Run("game with no interactions returns empty, no error", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		interactions, err := uc.ListInteractions(ctx, 1, 10, 0)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -392,7 +392,7 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 	})
 
 	t.Run("limit zero is a valid boundary", func(t *testing.T) {
-		uc := NewDataFetching(newTestDB(t), newFixedClock())
+		uc := mustNewDataFetching(t, newTestDB(t), newFixedClock())
 		if _, err := uc.ListInteractions(ctx, 1, 0, 0); err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -400,7 +400,7 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 
 	t.Run("offset paginates past earlier interactions", func(t *testing.T) {
 		q := newTestDB(t)
-		commands := NewGameCommands(q, newFixedClock())
+		commands := mustNewGameCommands(t, q, newFixedClock())
 
 		// Three saves, one second apart: 12:00:00, 12:00:01, 12:00:02.
 		for i := 0; i < 3; i++ {
@@ -409,7 +409,7 @@ func TestDataFetching_ListInteractions(t *testing.T) {
 			}
 		}
 
-		uc := NewDataFetching(q, newFixedClock())
+		uc := mustNewDataFetching(t, q, newFixedClock())
 		interactions, err := uc.ListInteractions(ctx, 5, 10, 1)
 		if err != nil {
 			t.Fatalf("ListInteractions: %v", err)
