@@ -7,15 +7,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"keep-it-up/internal/application/usecase"
-	"keep-it-up/internal/infrastructure/constant"
+	"keep-it-up/internal/infrastructure/config"
 	"keep-it-up/internal/infrastructure/database"
 	"keep-it-up/internal/infrastructure/driven"
 	"keep-it-up/internal/infrastructure/driver/cliadapter"
-	"keep-it-up/internal/infrastructure/util"
 
 	_ "modernc.org/sqlite"
 )
@@ -28,18 +26,16 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// --- Driven side: infrastructure dependencies ---------------------
-	util.LoadEnv(constant.EnvFilename)
-
-	dbString, err := filepath.Abs(os.Getenv("GOOSE_DBSTRING"))
+	// --- Configuration -------------------------------------------------
+	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("failed to get dbstring absolute path: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to load configuration: %v\n", err)
 		return 1
 	}
 
 	sqlDB, err := sql.Open("sqlite", fmt.Sprintf(
 		"file:%s?mode=rw",
-		dbString,
+		cfg.DBString,
 	))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open database: %v\n", err)
