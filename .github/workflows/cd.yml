@@ -17,6 +17,8 @@ jobs:
           go-version: 'stable'
 
       - run: go test ./...
+        env:
+          ISOLATED_TEST: "true"
 
       # 1. Build binaries
       - name: Build binaries

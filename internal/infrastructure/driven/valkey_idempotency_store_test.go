@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,12 +13,31 @@ import (
 	"github.com/valkey-io/valkey-go"
 )
 
+// RequireValkey skips the test when running in an isolated environment that has
+// no external services. CI/CD sets ISOLATED_TEST=true so the Valkey integration
+// tests are bypassed while the unit tests still run. This helper centralises the
+// gate so the logic is not copy-pasted across test files.
+func RequireValkey(t *testing.T) {
+	t.Helper()
+	if isIsolatedTest() {
+		t.Skipf("Skipping integration test: Valkey is not available")
+	}
+}
+
+// isIsolatedTest reports whether the run is deliberately isolated from external
+// services (ISOLATED_TEST=true or 1).
+func isIsolatedTest() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("ISOLATED_TEST")))
+	return v == "true" || v == "1"
+}
+
 // newTestStore connects to the Valkey instance under test and returns a store
 // together with a cleanup that deletes every key this test created. It skips
-// the test when no Valkey instance is reachable so the suite stays green in
-// environments without one.
+// the test when running in an isolated environment (no Valkey) so the suite
+// stays green in CI.
 func newTestStore(t *testing.T) (*ValkeyIdempotencyStore, string, func()) {
 	t.Helper()
+	RequireValkey(t)
 
 	addr := os.Getenv("VALKEY_ADDRESS")
 	if addr == "" {

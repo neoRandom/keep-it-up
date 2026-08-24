@@ -16,5 +16,7 @@ jobs:
                   go-version: "stable"
 
             - run: go test ./...
+              env:
+                  ISOLATED_TEST: "true"
             - run: go build -o kpip_server  ./cmd/server
             - run: go build -o kpip_manager ./cmd/manager
