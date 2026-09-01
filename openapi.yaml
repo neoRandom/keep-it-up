@@ -1,0 +1,382 @@
+openapi: 3.1.0
+
+info:
+  title: Keep It Up API
+  version: 1.1.0
+
+paths:
+  /login:
+    post:
+      summary: Log in
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '204':
+          description: Login successful; authentication cookies are set.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+
+  /games:
+    get:
+      summary: Get accessible games
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Games the authenticated player has access to.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /shared:
+    get:
+      summary: Get shared game data
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Current shared state of the game.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GameNotFound'
+
+  /interactions:
+    get:
+      summary: Get interactions for a game
+      description: |
+        Returns interactions for the given game, scoped by the `query` parameter.
+        - `all`: all interactions for the game, newest first (the legacy behavior).
+        - `player`: interactions performed by the authenticated player in the game.
+        - `first`: the earliest interaction of the game, or `null` if the game has none.
+        - `last`: the latest interaction of the game, or `null` if the game has none.
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - name: query
+          in: query
+          required: false
+          description: |
+            Which interactions to return.
+            - `all`: all interactions for the game (default).
+            - `player`: only the authenticated player's interactions in the game.
+            - `first`: the single earliest interaction of the game.
+            - `last`: the single latest interaction of the game.
+          schema:
+            type: string
+            enum:
+              - all
+              - player
+              - first
+              - last
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: |
+            The requested interactions. `all` and `player` return an array of
+            Interaction objects; `first` and `last` return a single Interaction
+            object (or `null` when the game has no interactions).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Interaction'
+                  - $ref: '#/components/schemas/Interaction'
+                  - type: 'null'
+        '400':
+          description: Invalid query or offset parameter.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GameNotFound'
+
+  /save:
+    post:
+      summary: Add a save interaction
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRequest'
+      responses:
+        '204':
+          description: Save interaction added.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GameNotFound'
+        '409':
+          description: |
+            Game is not currently playing, or a request with the same
+            Idempotency-Key is already in progress.
+
+  /play:
+    post:
+      summary: Start or resume the game
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Game resumed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GameNotFound'
+        '409':
+          description: |
+            Game is already playing, or a request with the same
+            Idempotency-Key is already in progress.
+
+  /pause:
+    post:
+      summary: Pause the game
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Game paused.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GameNotFound'
+        '409':
+          description: |
+            Game is not currently playing, or a request with the same
+            Idempotency-Key is already in progress.
+  /player/{id}:
+    get:
+      summary: Get a player's name and username by id
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the player to fetch.
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The player's name and username.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Player not found.
+
+
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      schema:
+        type: string
+
+  parameters:
+    GameId:
+      name: gameId
+      in: query
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        Optional client-generated key used to deduplicate the mutation. If a
+        request with the same key is already in progress, the server responds
+        with 409. If it already completed, the server replays the cached
+        response instead of executing the request again.
+      schema:
+        type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required.
+
+    GameNotFound:
+      description: Game not found or inaccessible.
+
+    IdempotencyConflict:
+      description: A request with the same Idempotency-Key is already in progress.
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    Game:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    SharedData:
+      type: object
+      required:
+        - gameId
+        - status
+      properties:
+        gameId:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+            - not_started
+            - playing
+            - paused
+        valid:
+          type:
+            - boolean
+            - 'null'
+        deadlineAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: The time at which the current active period expires.
+        lastSavedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: The time at which the shared state was last saved.
+        lastPausedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: The time at which the shared state was last paused.
+
+    SaveRequest:
+      type: object
+      required:
+        - duration
+      properties:
+        duration:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Duration of the save, in seconds.
+
+    Interaction:
+      type: object
+      required:
+        - id
+        - gameId
+        - action
+        - occurredAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        gameId:
+          type: integer
+          format: int64
+        playerId:
+          type: 
+            - integer
+            - 'null'
+          format: int64
+        action:
+          type: string
+          enum:
+            - saved
+            - paused
+            - resumed
+        occurredAt:
+          type: string
+          format: date-time
+        savedBy:
+          type:
+            - integer
+            - 'null'
+          format: int64
+
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - username
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        username:
+          type: string
