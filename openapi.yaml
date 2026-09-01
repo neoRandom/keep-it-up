@@ -2,7 +2,7 @@ openapi: 3.1.0
 
 info:
   title: Keep It Up API
-  version: 1.1.0
+  version: 1.2.0
 
 paths:
   /login:
@@ -128,7 +128,7 @@ paths:
 
   /save:
     post:
-      summary: Add a save interaction
+      summary: Adds a save interaction or starts the game
       security:
         - sessionCookie: []
       parameters:
@@ -149,12 +149,11 @@ paths:
           $ref: '#/components/responses/GameNotFound'
         '409':
           description: |
-            Game is not currently playing, or a request with the same
-            Idempotency-Key is already in progress.
+            A request with the same Idempotency-Key is already in progress.
 
   /play:
     post:
-      summary: Start or resume the game
+      summary: Resumes the game
       security:
         - sessionCookie: []
       parameters:
