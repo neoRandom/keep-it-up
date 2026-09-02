@@ -153,3 +153,110 @@ e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 - **Android**: no backend change; the client must use `http://10.0.2.2:8080/api`
   and allow cleartext traffic (client-side).
 
+---
+
+# Backend TODO — Save-by-calculus fix (issue #1)
+
+This is a **backend** change. The client already depends on the server producing a
+correct `deadlineAt`; it is documented here so the backend can be fixed without
+touching the client.
+
+## Problem
+
+When a player saves *after* the current deadline has already passed, the new
+deadline is computed by extending the **old (missed)** deadline instead of
+anchoring at the moment of the save. As a result the game can remain overdue even
+after a successful save.
+
+Example: the deadline was at `T`. At `T + 5min` a player saves for `4min`.
+Expected result: `deadline = T + 5min + 4min = T + 9min` (valid again).
+Current result: `deadline = T + 4min`, which is still `1min` in the past — the game
+is still overdue.
+
+## Location
+
+- Repo: `keep-it-up` (the Go backend)
+- File: `internal/core/service/shared_data.go`
+- Function: `BuildSharedData`
+- Branch: the `"saved"` case, specifically the `else` arm for subsequent saves:
+
+```go
+} else {
+    deadline := data.DeadlineAt.Add(extension) // BUG: anchored to previous deadline
+    data.DeadlineAt = &deadline
+}
+```
+
+The first save (`status == NotStarted`) is already correct because it anchors at the
+interaction's own time:
+
+```go
+if data.Status == model.NotStarted {
+    deadline := ia.OccurredAt.Add(extension)
+    data.DeadlineAt = &deadline
+    data.Status = model.Playing
+}
+```
+
+## Fix
+
+Make subsequent saves anchor at the save's own time too, so the new deadline always
+equals `save time + duration`, regardless of whether a previous deadline was missed:
+
+```go
+} else {
+    // Anchor at the save's own time so a missed previous deadline is "paid back"
+    // (the new deadline is now + extension, never in the past).
+    deadline := ia.OccurredAt.Add(extension)
+    data.DeadlineAt = &deadline
+}
+```
+
+`ia.OccurredAt` is the server-side timestamp of the save interaction (set by the
+`GameCommands.SaveGame` use case), i.e. the current time at which the save happened.
+This "includes the time since the last deadline" by resetting the anchor to `now`.
+
+## Tests
+
+Add a case to `internal/core/service/shared_data_test.go` that reproduces the bug:
+
+```go
+func TestBuildSharedData_SaveAfterDeadlineIsNotOverdue(t *testing.T) {
+    // Save 1 at 12:00:00 with 60s => deadline 12:01:00.
+    // Save 2 occurs AFTER that deadline at 12:06:00 with 240s.
+    // The new deadline must be 12:06:00 + 240s = 12:10:00 (never in the past).
+    interactions := []model.Interaction{
+        {
+            ID:         1,
+            GameID:     5,
+            PlayerID:   intPtr(1),
+            Action:     "saved",
+            OccurredAt: time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC),
+            SavedBy:    intPtr(60),
+        },
+        {
+            ID:         2,
+            GameID:     5,
+            PlayerID:   intPtr(1),
+            Action:     "saved",
+            OccurredAt: time.Date(2026, 8, 22, 12, 6, 0, 0, time.UTC),
+            SavedBy:    intPtr(240),
+        },
+    }
+
+    shared, err := BuildSharedData(5, interactions, time.Date(2026, 8, 22, 12, 6, 0, 0, time.UTC))
+    if err != nil {
+        t.Fatalf("BuildSharedData: %v", err)
+    }
+
+    want := time.Date(2026, 8, 22, 12, 10, 0, 0, time.UTC)
+    if shared.DeadlineAt == nil || !shared.DeadlineAt.Equal(want) {
+        t.Errorf("DeadlineAt = %v, want %v", shared.DeadlineAt, want)
+    }
+    if shared.Valid == nil || !*shared.Valid {
+        t.Errorf("Valid = %v, want true (game must be valid again after the save)", shared.Valid)
+    }
+}
+```
+
+Run it with `go test ./internal/core/service/...`.
